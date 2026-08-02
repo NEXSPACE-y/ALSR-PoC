@@ -14,6 +14,9 @@ VRAM 容量を超えるモデルの推論にどの程度の実用領域がある
 現在の到達点: **Phase 0-2 完了**（M5 上の解析器・Chunk 計画・帯域シミュレータ）。
 CUDA / PCIe は未着手（Phase 3、RTX 3060 機）。
 
+設計書の全条項に対する適合状況は [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)
+にある。**未達がある場合はそこに書いてある。**
+
 ---
 
 ## クイックスタート
@@ -166,6 +169,7 @@ environment 保存済み。1 つでも失敗した Run は性能比較から除�
 ALSR-PoC/
 ├── docs/
 │   ├── ALSR_REQ_DESIGN.md     要件定義・基本設計（原文のまま）
+│   ├── CONFORMANCE.md         設計書適合監査（未達・逸脱を隠さない）
 │   ├── DECISIONS.md           決定記録（反証条件つき）
 │   ├── EXPERIMENTS.md         実験記録（Phase 0-2 の実測値）
 │   └── KNOWN_LIMITATIONS.md   何を主張してよくて、何を主張してはいけないか
@@ -208,6 +212,15 @@ ALSR-PoC/
   全 Chunk のホスト側 checksum を線速で回せない。
 - `gemma4:12b` (6.86 GiB) は RTX 3060 の 12 GB VRAM に**収まる**。
   このモデルで ALSR の優位を語ることはできない。機構検証専用。
+  VRAM 超過領域の検証対象は `gemma4:31b`（テキスト側 18.49 GiB）へ移した。
+- **常駐率が効く。** 31B で常駐 0 → 1.329 tok/s、常駐 10 GB → **2.864 tok/s**（2.16 倍）。
+  ただし GPU 待機率は 91.7% のままで、PCIe 律速という状態は変わらない。
+- **Chunk サイズは PCIe 律速の領域ではほとんど効かない。**
+  64〜512 MiB で token/s の幅は 1.2%。1024 MiB は VRAM 不足で測定不能
+  （大きな Chunk と高い常駐率は同じ VRAM を奪い合う）。
+- 実測 **0.6017 byte/param**（Q4_K_M）から外挿すると 405B は 243.7 GB。
+  設計書の「理想 4bit で 202.5 GB」より 20% 大きい。
+  405B で 5 tok/s には **1.17 TB/s** の H2D が要る（PCIe 5.0 x16 の 18 倍以上）。
 
 ---
 
