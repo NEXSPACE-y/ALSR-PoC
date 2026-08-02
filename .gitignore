@@ -1,0 +1,40 @@
+# --- モデル重み（NFR-03: 絶対にGitへ入れない） ---
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+models/
+ollama-blobs/
+results/**/raw-model-data/
+
+# --- ビルド成果物 ---
+build/
+build-*/
+cmake-build-*/
+_deps/
+*.o
+*.a
+*.dylib
+*.so
+
+# --- 実行結果（Evidence Packは明示的にadd。既定では追跡しない） ---
+results/*
+!results/.gitkeep
+
+# --- third_party の取得物 ---
+third_party/*
+!third_party/.gitkeep
+!third_party/README.md
+
+# --- OS / エディタ ---
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/

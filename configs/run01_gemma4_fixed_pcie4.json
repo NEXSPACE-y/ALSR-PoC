@@ -1,0 +1,54 @@
+{
+  "_comment": [
+    "Run 01 — 実 plan (gemma4:12b, 256MiB 固定Chunk) を PCIe 4.0 x16 相当の",
+    "H2D 帯域で流す。GPU 消費速度は RTX 3060 の VRAM 帯域 (360 GB/s 公称) を",
+    "下回る 300 GB/s と置いた。これは『重み供給が PCIe に律速される』という",
+    "設計書 §2.3 の主張を、実モデルの実バイトで確認するための Run である。",
+    "",
+    "注意: これは M5 上の仮想時間シミュレーションであり、CUDA の実測ではない。",
+    "backend.measured_on_real_hardware は false のまま (設計書 §3.1)。",
+    "",
+    "前提コマンド:",
+    "  ./build/bin/alsr-plan --ollama gemma4:12b --chunk-mib 256 \\",
+    "      --out results/plan_gemma4_256mib.json"
+  ],
+  "label": "run01-gemma4-fixed-pcie4",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "results/plan_gemma4_256mib.json",
+    "model_path": "",
+    "host_store_mode": "mmap"
+  },
+  "ring": {
+    "ring_depth": 4,
+    "prefetch_depth": 3
+  },
+  "scheduler": {
+    "type": "fixed",
+    "stats_window": 8,
+    "fixed_chunk_size": 268435456,
+    "fixed_prefetch_depth": 3
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 25.0,
+      "fixed_latency_s": 0.00002,
+      "jitter_fraction": 0.05
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 0.000005,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 300000000000,
+    "consume_jitter_fraction": 0.02,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "per_token_bytes": 7365558464,
+    "materialize_data": true
+  }
+}

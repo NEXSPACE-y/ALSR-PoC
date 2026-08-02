@@ -1,0 +1,69 @@
+{
+  "_comment": [
+    "Run 03 — 合成 Chunk による『供給が消費を上回る』領域の Run。",
+    "",
+    "なぜ必要か:",
+    "  Run 01/02 は実モデルで PCIe が律速する領域しか見せない。制御則そのもの",
+    "  (キュー、リングバッファ、適応、バックプレッシャー) が健全側でも正しく",
+    "  動くことを確認しないと、Phase 3 で CUDA へ移したときに何が壊れたのか",
+    "  切り分けられない。",
+    "",
+    "この設定が対応する物理的状況:",
+    "  - 重みの大部分が VRAM 常駐で、毎トークン流すのは一部だけ",
+    "  - あるいは GPU 側の演算が重く、転送に余裕がある",
+    "  どちらも 12B より大きいモデル (31B/70B) で現実に検討する領域である。",
+    "",
+    "実データを流す (materialize_data=true) ので checksum も検証される。",
+    "合成データの期待値は生成規則から独立に再計算しており、リング／オフセット",
+    "の取り違えを検出できる。"
+  ],
+  "label": "run03-synthetic-adaptive-healthy",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "",
+    "model_path": "",
+    "host_store_mode": "synthetic",
+    "synthetic_total_bytes": 4294967296,
+    "synthetic_chunk_bytes": 67108864
+  },
+  "ring": {
+    "ring_depth": 6,
+    "prefetch_depth": 4
+  },
+  "scheduler": {
+    "type": "adaptive",
+    "stats_window": 8,
+    "adaptive_initial_chunk_size": 67108864,
+    "adaptive_initial_prefetch_depth": 4,
+    "adaptive_min_prefetch_depth": 1,
+    "adaptive_max_prefetch_depth": 6,
+    "adaptive_min_chunk_size": 16777216,
+    "adaptive_max_chunk_size": 134217728,
+    "adaptive_min_interval_chunks": 4,
+    "adaptive_starvation_wait_ratio": 0.02,
+    "adaptive_grow_ratio": 0.5,
+    "adaptive_pressure_ratio": 0.9
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 25.0,
+      "fixed_latency_s": 0.00002,
+      "jitter_fraction": 0.1
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 0.000005,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 8000000000,
+    "consume_jitter_fraction": 0.05,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "per_token_bytes": 7365558464,
+    "materialize_data": true
+  }
+}

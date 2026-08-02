@@ -1,0 +1,345 @@
+# Decision Record
+
+設計書 §16.3 の様式に従う。
+
+```text
+ID / 日付
+状況
+選択肢
+決定
+根拠
+反証条件
+関連Run ID
+```
+
+「反証条件」は必ず書く。後から覆せない決定を作らないため。
+
+---
+
+## DR-0001 / 2026-08-02 — 実装担当モデルを Sonnet 5 から Opus 5 へ変更
+
+**状況**
+設計書 §15.1 は主実装を Claude Code + Claude Sonnet 5 と定め、§19 のチェック
+リストにも「Claude Code で Sonnet 5 を選択・記録した」とある。実際の作業は
+Claude Opus 5 で開始された。§20 には「ユーザー環境に表示される『Opus 5』の
+正式 CLI model ID」が未確定事項として残っていた。
+
+**選択肢**
+
+1. 設計書どおり Sonnet 5 へ切り替える
+2. Opus 5 で実施し、設計書は改変せず逸脱として記録する
+3. 設計書 §15 を書き換えて Opus 5 を正とする
+
+**決定**
+選択肢 2。設計書 `docs/ALSR_REQ_DESIGN.md` は原文のまま配置し、本 DR で逸脱を
+記録する。
+
+**根拠**
+
+- §16.4「結果の改変防止」の精神に合わせ、入力文書を後から書き換えない。
+  逸脱は差分として追跡できる形にする方が監査しやすい。
+- ユーザーの明示的な指示による変更であり、モデル選定はユーザーの裁量。
+- §20 の未確定事項「Opus 5 の正式 CLI model ID」は解消した。実行環境が報告する
+  正式 ID は `claude-opus-5` である。
+
+**確定した model ID**
+
+| 役割 | 設計書 §15.1 の指定 | 実際 |
+|---|---|---|
+| 主実装 | Claude Sonnet 5 (`claude-sonnet-5`) | **Claude Opus 5 (`claude-opus-5`)** |
+
+**反証条件**
+
+- Opus 5 の利用枠・レート制限で Phase を完走できない場合は Sonnet 5 へ戻す。
+- §15.3 のエスカレーション条件（同じ失敗を 2 回修正しても再現する、race /
+  deadlock の原因が局所化できない等）が Opus 5 でも解消しない場合は、Fable 5
+  へ上げる方針は §15.3 のまま有効。
+
+**関連 Run ID** — なし（実装開始前の決定）
+
+---
+
+## DR-0002 / 2026-08-02 — テストフレームワークを Catch2 v3.15.3 に固定
+
+**状況**
+設計書 §9.1 は「Catch2 または GoogleTest（依存を固定）」、§17 は「テスト
+フレームワークは 1 つに固定」とする。
+
+**選択肢**
+
+1. Catch2 v3 を FetchContent で commit 固定
+2. GoogleTest を FetchContent で commit 固定
+3. single-header 版を third_party/ へベンダリング
+
+**決定**
+選択肢 1。`GIT_TAG` に annotated tag の commit SHA を直接書く。
+
+```cmake
+FetchContent_Declare(Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb)  # v3.15.3
+```
+
+**根拠**
+
+- タグは動き得るが commit SHA は動かない。NFR-02（再現性）に対して最も強い固定。
+- Catch2 は `SECTION` によるフィクスチャ分岐が planner の破壊テストと相性が良い。
+- BSL-1.0 なので配布上の制約が軽い。
+
+**反証条件**
+
+- オフラインビルドが要件になった場合はベンダリング（選択肢 3）へ切り替える。
+- Catch2 のビルド時間が全体の開発サイクルを阻害する場合は再検討。
+
+**関連 Run ID** — なし
+
+---
+
+## DR-0003 / 2026-08-02 — JSON は外部依存を使わず自前実装
+
+**状況**
+設定・manifest・plan・metrics のすべてが JSON / JSONL である。
+
+**選択肢**
+
+1. nlohmann/json を FetchContent
+2. RapidJSON
+3. 自前の最小実装
+
+**決定**
+選択肢 3。`include/alsr/json.hpp` + `src/telemetry/json.cpp`（約 600 行）。
+
+**根拠**
+
+- **キー順の保証**。オブジェクトを挿入順で保持する。`std::map` ベースの実装だと
+  キーが並べ替えられ、「同一入力から同一バイト列」を得るのに追加の規約が要る。
+  NFR-02 と §17 完了条件「同一 seed で summary が再現」に直結する。
+- **実数の書式を自分で決められる**。`format_real()` は最短往復表現を選び、
+  非有限値（inf/NaN）は捏造せず `Error(Invalid)` にする。計測値の 0 除算を
+  黙って `null` にしないという方針をコードで強制できる。
+- ビルド時ネットワーク取得物をテスト用 Catch2 だけに限定できる。
+- 必要な機能は限定的（巨大配列は elide して要約する）で、実装コストが小さい。
+
+**反証条件**
+
+- JSON Pointer / Schema 検証など高機能が必要になったら nlohmann/json へ移行する。
+- 自前実装に起因するバグが 2 件以上出たら移行する（現時点で 0 件、単体テスト
+  10 ケースで固定）。
+
+**関連 Run ID** — なし
+
+---
+
+## DR-0004 / 2026-08-02 — シミュレータは仮想時間で駆動する
+
+**状況**
+§17 の完了条件に「同一 seed で summary が再現」がある。一方、実測の壁時計は
+OS スケジューリングやページキャッシュの状態で必ず揺れる。
+
+**選択肢**
+
+1. 実時間（スレッドを実際に sleep させる）
+2. 仮想時間（決定論的な漸化式で時刻を進める）
+3. 両方持つ
+
+**決定**
+選択肢 2 を既定とし、壁時計は「計測オーバーヘッドの把握用」として別途記録する
+（NFR-05）。
+
+パイプライン漸化式（3 つの直列エンジンが互いに並行に動く）:
+
+```text
+prepare_end[i] = max(producer_busy,  slot_released[slot(i)]) + prepare(i)
+copy_end[i]    = max(transfer_busy,  prepare_end[i])         + h2d(i)
+compute_end[i] = max(consumer_busy,  copy_end[i])            + compute(i)
+wait[i]        = max(consumer_busy, copy_end[i]) - consumer_busy
+```
+
+**根拠**
+
+- 再現性が最優先。同一 seed・同一設定で `summary.json` が `wall_seconds` を
+  除いて完全一致することを統合テストで固定している。
+- リングバッファの状態遷移と実データの読み出し・checksum は**実際に行う**ので、
+  正確性の検証は本物である。仮想化しているのは時刻だけ。
+- M5 には独立 VRAM への PCIe H2D 経路が無く、実時間を測っても CUDA の予測に
+  ならない（§3.1）。実時間で測る意味がそもそも薄い。
+
+**反証条件**
+
+- Phase 3 の CUDA backend は CUDA Event の実測値を返す。そこで仮想時間モデルと
+  実測が 20% 以上乖離したら、モデル（特に直列エンジン仮定と固定レイテンシ）を
+  見直す。§15.3 のエスカレーション条件に該当する。
+
+**関連 Run ID** — `run01-gemma4-fixed-pcie4-cc2b89940ac3` 他
+
+---
+
+## DR-0005 / 2026-08-02 — S_stream は下限・上限の両方を出す
+
+**状況**
+1 トークンあたりの転送量 `S_stream` は、埋め込み行列を lm_head として全読み
+するかどうかで倍近く変わる。gemma4:12b には `output.weight` が存在せず、
+GGUF だけからは断定できない。
+
+**選択肢**
+
+1. tied embedding を仮定して全読みとする
+2. 埋め込みは lookup だけとして除外する
+3. 下限・上限の両方を出し、どちらが実態かは実測で決める
+
+**決定**
+選択肢 3。`per_token_bytes_lower` / `per_token_bytes_upper` を manifest に出し、
+`bandwidth_ceiling_table` も両方の T_max を出す。
+
+**根拠と、その後の実測による裏付け**
+
+gemma4:12b の実測値:
+
+| 量 | 値 |
+|---|---|
+| 総テンソルバイト | 7,365,558,464 (6.86 GiB) |
+| `token_embd.weight` (Q6_K) | 825,753,600 |
+| S_stream 下限（埋め込みを除く） | 6,539,804,864 |
+| S_stream 上限（tied lm_head で全読み） | 7,365,558,464 |
+
+M5 実測の生成速度 15.35 token/s（ユーザー提供の `/api/chat` レスポンス、
+`eval_count=1024 / eval_duration=66.707 s`）と突き合わせると:
+
+```text
+15.35 token/s × 7,365,558,464 B = 113.06 GB/s   ← 上限ケース
+15.35 token/s × 6,539,804,864 B = 100.38 GB/s   ← 下限ケース
+```
+
+M5 のユニファイドメモリで実効 113 GB/s は妥当な範囲であり、**上限ケース
+（tied embedding を毎トークン全読み）が実態に近い**と考えられる。ただしこれは
+逆算による示唆であって直接測定ではない。
+
+**反証条件**
+
+- Phase 5 で llama.cpp の実行経路を計装し、1 トークンあたりの実際の重み読み出し
+  量を直接測る。そこで下限ケースが正しいと判明したら、本 DR と manifest の
+  `per_token_full_read` 判定を訂正する。
+- 別アーキテクチャ（`output.weight` を持つモデル）では上限＝下限になる。
+
+**関連 Run ID** — `run01-gemma4-fixed-pcie4-cc2b89940ac3`
+
+---
+
+## DR-0006 / 2026-08-02 — Chunk はファイル上の連続範囲とし、実行順は別に持つ
+
+**状況**
+設計書 FR-03 は Chunk へ「元 offset、length」を付けることを求める（単数形）。
+一方 ALSR の要点は「実行順に先読みする」ことで、実行順とファイル順は一致しない。
+
+**選択肢**
+
+1. Chunk = 実行順に並べたテンソル片の集合（scatter-gather 転送）
+2. Chunk = ファイル上の連続範囲（1 回の H2D で済む）、実行順は別配列で持つ
+3. モデルファイルを実行順に並べ替えたコピーを作る
+
+**決定**
+選択肢 2。`chunks[]` はファイルオフセット昇順で `[data_start, file_size)` を
+隙間なく重複なく敷き詰め、`exec_sequence[]` が実行順の並びを持つ。
+
+**根拠**
+
+- 1 Chunk = 1 回の `cudaMemcpyAsync` にできる。scatter-gather は発行回数が増え、
+  §14 の「細かすぎる Chunk → 発行・同期オーバーヘッド増」に直撃する。
+- 選択肢 3 は NFR-03「実機の既存モデルや Ollama blob を変更しない」に反する。
+  また 7 GB のコピーを作るのはストレージの無駄（§14 最終行）。
+- 実行順とファイル順のズレは `exec_order_inversions` として定量化し、
+  「逐次先読みがどれだけ効くか」の指標にできる。
+
+gemma4:12b / 256MiB 固定の実測: chunk 30 個、逆転 1 箇所（`output_norm.weight`
+がファイル先頭にあるため）。ファイル順の逐次先読みはほぼそのまま使える。
+
+**反証条件**
+
+- MoE で Expert が実行順にバラバラに要求される場合、連続範囲 Chunk では
+  無駄な転送が増える。MoE 対応時（設計書 §2.5）は選択肢 1 を再検討する。
+
+**関連 Run ID** — `results/plan_gemma4_256mib.json`
+(`plan_structure_sha256: 170474fdb8a782b95449c0c3dd9909585dae63d75a9571395c0852830dab2154`)
+
+---
+
+## DR-0007 / 2026-08-02 — 実データを流さない Run は必ずゲートを落とす
+
+**状況**
+仮想時間 600 秒（10 分）の定常運転を、実バイトを流しながら検証しようとすると
+消費 10 GB/s × 600 s = 6 TB の生成・転送が必要で現実的でない。
+
+**選択肢**
+
+1. 長時間 Run を諦める
+2. 実データを流さないモードを作り、他と同じ扱いにする
+3. 実データを流さないモードを作り、必ず必須ゲートを落とす
+
+**決定**
+選択肢 3。`materialize_data=false` の Run は `RunSummary::data_materialized` が
+false になり、`evaluate_mandatory_gates()` が必ず失敗を 1 件積む。
+
+**根拠**
+
+- スケジューラ・キューの長時間挙動は観測したい。
+- しかし checksum を検証していない Run を「PASS」と表示したら、§12.1 の
+  必須ゲートが意味を失う。REDを隠さないのと同じ理由で、検証していないことを
+  隠さない。
+
+**反証条件**
+
+- Phase 3 以降で GPU 側 checksum が線速で回せるようになれば、実データを流した
+  ままの長時間 Run が可能になり、このモードは不要になる。
+
+**関連 Run ID** — stress テスト `steady-600s`
+
+---
+
+## DR-0008 / 2026-08-02 — 言語構成（C++ 単一 / C++ + Rust ハイブリッド）は Phase 3 で判定する
+
+**状況**
+設計書 §9.1 は「コア／CUDA 統合: C++20」とする。実装中に、ランタイム中核
+（Host Store / Ring Buffer / pinned pool）を Rust で書く案が提起された。
+
+**現時点で分かっていること**
+
+Rust 側に寄せる根拠として実際に観測されたもの:
+
+- `RingBuffer` の不変条件（7 状態の遷移表、世代番号による ABA 検出、producer が
+  consumer を踏まない保証）は、すべて**ランタイムの手書きチェックと例外**で
+  実装している。単体テスト 9 ケースのうち 5 ケースは「Rust の型検査なら
+  コンパイル時に落ちるもの」を実行時に確認しているだけである。
+- 設計書 §8.1 は Phase 4 以降で producer / transfer / consumer / telemetry を
+  実スレッド化する。データ競合が現実の問題になるのはそこから。
+
+C++ 側に留める根拠:
+
+- 「RAM 介入」の実体（`mmap(PROT_READ)` 領域、`cudaHostRegister` した pinned
+  スラブ、GPU へ渡す生ポインタ）は Rust でも `unsafe` である。安全性の保証は
+  バイトに触る層でちょうど切れる。得られるのは帳簿の安全性。
+- FR-09 の llama.cpp Executor Adapter と、将来の GPU 側展開カーネルは C/C++ 必須。
+- cargo + CMake + nvcc の三重管理は NFR-02「依存を固定」の面積を倍にする。
+- §14 のリスク表は物理（帯域）が支配的で、メモリ安全バグではない。
+
+**決定（暫定）**
+Phase 0-2 は C++20 単一で完了させる。言語構成の最終判定は **Phase 3** で行う。
+Phase 3 の FR-08 は `cudaMemcpyAsync` / Stream / Event / `deviceOverlap` の
+取得だけで**独自カーネルを必要としない**ため、Rust バインディング（cudarc 等）
+でも実装可能であり、失敗しても損害が 1 モジュールに閉じる。
+
+**判定基準（Phase 3 で測る）**
+
+1. Rust 版 CUDA backend が C++ 版と同じ `TransferBackend` 相当の抽象を満たすか
+2. ビルド再現性（依存の commit 固定、オフライン再ビルド）が悪化しないか
+3. Phase 5 の llama.cpp アダプタとの FFI 境界が
+   `submit_copy(host_ptr, dev_ptr, bytes, stream)` 程度に小さく保てるか
+
+**反証条件**
+
+- Phase 4 のマルチスレッド化で C++ 側に data race 起因の不具合が 2 件以上出たら、
+  ランタイム中核の Rust 移植を前倒しする。
+- 逆に Rust 側の CUDA バインディングが Phase 3 で必要な API
+  （`asyncEngineCount` 等の device attribute 取得を含む）を覆えないなら、
+  C++ 単一で確定する。
+
+**関連 Run ID** — なし（Phase 3 で判定）

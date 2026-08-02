@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Run 02 — Run 01 と同じ実 plan を PCIe 3.0 x16 相当 (12 GB/s) で流し、",
+    "適応 Scheduler を有効にする。",
+    "",
+    "実 plan を使う Run では Chunk サイズは計画で確定しているため、適応",
+    "Scheduler は先読み距離しか動かせない (sim が allow_chunk_size_change を",
+    "自動で false にし、その旨を scheduler_log.json に残す)。",
+    "",
+    "この Run の目的は『適応制御でも平均帯域不足は消えない』ことを実測で",
+    "示すこと。設計書 §2.2 の必要条件を満たさない領域の確定は正式な成果",
+    "である (§4.2 / §12.4)。"
+  ],
+  "label": "run02-gemma4-adaptive-pcie3",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "results/plan_gemma4_256mib.json",
+    "model_path": "",
+    "host_store_mode": "mmap"
+  },
+  "ring": {
+    "ring_depth": 4,
+    "prefetch_depth": 2
+  },
+  "scheduler": {
+    "type": "adaptive",
+    "stats_window": 8,
+    "adaptive_initial_chunk_size": 268435456,
+    "adaptive_initial_prefetch_depth": 2,
+    "adaptive_min_prefetch_depth": 1,
+    "adaptive_max_prefetch_depth": 4,
+    "adaptive_min_chunk_size": 16777216,
+    "adaptive_max_chunk_size": 268435456,
+    "adaptive_min_interval_chunks": 4,
+    "adaptive_starvation_wait_ratio": 0.02,
+    "adaptive_grow_ratio": 0.5,
+    "adaptive_pressure_ratio": 0.9
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 12.0,
+      "fixed_latency_s": 0.00002,
+      "jitter_fraction": 0.05
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 0.000005,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 300000000000,
+    "consume_jitter_fraction": 0.02,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "per_token_bytes": 7365558464,
+    "materialize_data": true
+  }
+}
