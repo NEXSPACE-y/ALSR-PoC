@@ -186,8 +186,8 @@ ALSR-PoC/
 │   ├── simulator/  仮想時間 backend（M5）
 │   └── cuda/       Phase 3 で実装（未着手）
 ├── tests/          unit / integration / stress（Catch2 タグで分離）
-├── configs/        サンプル実験設定 3 本
-├── scripts/        環境収集、Ollama 基準値、サンプル Run
+├── configs/        サンプル実験設定 6 本（12B x3 / 31B x3）
+├── scripts/        環境収集、Ollama 基準値、サンプル Run、Chunk スイープ
 ├── tools/          Python の集計・レポート
 └── results/        Evidence Pack（Git 管理外）
 ```
