@@ -94,4 +94,18 @@ struct Manifest {
 [[nodiscard]] json::Value bandwidth_ceiling_table(
     const Manifest& m, const std::vector<double>& bandwidths_bytes_per_s);
 
+/// VRAM 常駐率を振ったときの実効 S_stream と T_max（設計書 §2.4「大きな重み常駐率」）。
+///
+/// 重要: Batch=1 の Dense モデルでは、各重みは 1 トークンにつきちょうど 1 回しか
+/// 使われない。したがって「どの重みを常駐させるか」は総転送量に影響しない。
+/// 効くのは「何バイト常駐させるか」だけである。選択方針の議論は Batch > 1、
+/// 投機デコード、MoE で初めて意味を持つ。
+///
+/// resident_bytes_list の各値について:
+///   S_stream_effective = max(0, per_token_bytes_upper - resident)
+///   T_max              = B / S_stream_effective
+[[nodiscard]] json::Value residency_table(
+    const Manifest& m, const std::vector<Bytes>& resident_bytes_list,
+    const std::vector<double>& bandwidths_bytes_per_s);
+
 }  // namespace alsr

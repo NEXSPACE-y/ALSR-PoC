@@ -195,6 +195,7 @@ json::Value SimConfig::to_json() const {
   run.set("max_virtual_seconds", max_virtual_seconds);
   run.set("max_chunks", max_chunks);
   run.set("per_token_bytes", per_token_bytes);
+  run.set("resident_bytes", resident_bytes);
   run.set("cancel_at_chunk", cancel_at_chunk);
   run.set("materialize_data", materialize_data);
   j.set("run", std::move(run));
@@ -283,6 +284,8 @@ SimConfig SimConfig::from_json(const json::Value& v) {
         static_cast<u64>(r->get_int("max_chunks", static_cast<i64>(c.max_chunks)));
     c.per_token_bytes = static_cast<Bytes>(
         r->get_int("per_token_bytes", static_cast<i64>(c.per_token_bytes)));
+    c.resident_bytes = static_cast<Bytes>(
+        r->get_int("resident_bytes", static_cast<i64>(c.resident_bytes)));
     c.cancel_at_chunk = static_cast<u64>(
         r->get_int("cancel_at_chunk", static_cast<i64>(c.cancel_at_chunk)));
     c.materialize_data = r->get_bool("materialize_data", c.materialize_data);
@@ -323,6 +326,35 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
   } else {
     store = std::make_unique<HostStore>("", HostStoreMode::Synthetic,
                                         cfg.synthetic_total_bytes);
+  }
+
+  // --- VRAM 常駐分をストリーミング対象から外す (§2.4) ------------------
+  // 実行順の先頭から積む。Batch=1 Dense ではどれを選んでも総転送量は同じなので、
+  // 選択方針は実装の単純さで決めてよい（residency_table() のコメント参照）。
+  Bytes       resident_actual = 0;
+  std::size_t resident_chunks = 0;
+  if (cfg.resident_bytes > 0) {
+    if (synthetic) {
+      fail(ErrorKind::Invalid,
+           "resident_bytes は実 plan の Run でのみ使える"
+           "（合成 Chunk には実行順の意味が無い）");
+    }
+    std::vector<SimChunk> streamed;
+    streamed.reserve(base_chunks.size());
+    for (const SimChunk& c : base_chunks) {
+      if (resident_actual + c.bytes <= cfg.resident_bytes) {
+        resident_actual += c.bytes;
+        ++resident_chunks;
+      } else {
+        streamed.push_back(c);
+      }
+    }
+    if (streamed.empty()) {
+      fail(ErrorKind::Invalid,
+           "resident_bytes が大きすぎて流す Chunk が残らない。"
+           "この構成では ALSR が不要である（全重みが VRAM に載る）");
+    }
+    base_chunks.swap(streamed);
   }
 
   // --- Scheduler ------------------------------------------------------
@@ -743,6 +775,8 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
   s.scheduler_changes = sched->change_count();
   s.ring_wrap_arounds = ring.stats().wrap_arounds;
   s.data_materialized = cfg.materialize_data;
+  s.resident_bytes = resident_actual;
+  s.resident_chunk_count = resident_chunks;
 
   // ここでは environment_recorded は false のまま。証拠を書き出す側
   // (alsr-sim) が記録後に再評価する。空の failures と pass=false という

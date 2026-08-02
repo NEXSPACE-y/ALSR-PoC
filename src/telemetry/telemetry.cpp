@@ -162,6 +162,8 @@ json::Value RunSummary::to_json() const {
   mem.set("pinned_bytes", pinned_bytes);
   mem.set("peak_host_bytes", peak_host_bytes);
   mem.set("peak_device_bytes", peak_device_bytes);
+  mem.set("resident_bytes", resident_bytes);
+  mem.set("resident_chunk_count", resident_chunk_count);
   j.set("memory", std::move(mem));
 
   json::Value corr = json::Value::make_object();
@@ -358,7 +360,14 @@ std::string render_report(const RunSummary& s, const json::Value& config,
   o << "| 最大ホスト側 | " << s.peak_host_bytes << " ("
     << human_bytes(s.peak_host_bytes) << ") |\n";
   o << "| pinned 相当 | " << s.pinned_bytes << " (" << human_bytes(s.pinned_bytes)
-    << ") |\n\n";
+    << ") |\n";
+  o << "| VRAM 常駐重み | " << s.resident_bytes << " ("
+    << human_bytes(s.resident_bytes) << ", " << s.resident_chunk_count
+    << " chunk) |\n\n";
+  if (s.resident_bytes > 0) {
+    o << "常駐分は定常状態のストリーミング対象から外している。起動時の初期"
+         "ロード転送量はこの Run の総転送バイトに含まれない（設計書 §2.4）。\n\n";
+  }
 
   o << "## 証拠\n\n";
   o << "- `metrics.jsonl` SHA-256: `" << s.metrics_sha256 << "`\n";

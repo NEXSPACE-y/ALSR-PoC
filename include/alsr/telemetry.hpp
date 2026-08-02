@@ -117,6 +117,9 @@ struct RunSummary {
   Bytes pinned_bytes = 0;
   Bytes peak_host_bytes = 0;
   Bytes peak_device_bytes = 0;
+  /// 定常状態のストリーミング対象から外した常駐重み（§2.4）
+  Bytes resident_bytes = 0;
+  std::size_t resident_chunk_count = 0;
 
   u64 checksum_failures = 0;
   u64 missing_chunks = 0;

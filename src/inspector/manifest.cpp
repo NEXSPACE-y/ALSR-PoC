@@ -369,4 +369,55 @@ json::Value bandwidth_ceiling_table(const Manifest& m,
   return out;
 }
 
+json::Value residency_table(const Manifest& m,
+                            const std::vector<Bytes>& resident_bytes_list,
+                            const std::vector<double>& bandwidths) {
+  json::Value rows = json::Value::make_array();
+  for (const Bytes resident : resident_bytes_list) {
+    if (resident > m.per_token_bytes_upper) {
+      // 常駐量が S_stream を超える = 全部載る = ALSR 不要。黙って丸めない。
+      json::Value r = json::Value::make_object();
+      r.set("resident_bytes", resident);
+      r.set("fully_resident", true);
+      r.set("note", "重み全体が常駐する。この構成では ALSR は不要である。");
+      rows.push_back(std::move(r));
+      continue;
+    }
+    const Bytes streamed = m.per_token_bytes_upper - resident;
+
+    json::Value r = json::Value::make_object();
+    r.set("resident_bytes", resident);
+    r.set("resident_fraction",
+          static_cast<double>(resident) /
+              static_cast<double>(m.per_token_bytes_upper));
+    r.set("streamed_bytes_per_token", streamed);
+    r.set("fully_resident", false);
+
+    json::Value tmax = json::Value::make_array();
+    for (const double b : bandwidths) {
+      if (!(b > 0.0)) fail(ErrorKind::Invalid, "bandwidth must be > 0 byte/s");
+      json::Value t = json::Value::make_object();
+      t.set("bandwidth_gb_per_s", b / 1e9);
+      t.set("t_max_token_per_s",
+            streamed == 0 ? 0.0 : b / static_cast<double>(streamed));
+      tmax.push_back(std::move(t));
+    }
+    r.set("t_max", std::move(tmax));
+    rows.push_back(std::move(r));
+  }
+
+  json::Value out = json::Value::make_object();
+  out.set("formula", "S_stream_effective = S_stream_upper - resident_bytes");
+  out.set("s_stream_upper_bytes", m.per_token_bytes_upper);
+  out.set("rows", std::move(rows));
+  out.set("note",
+          "Batch=1 の Dense では各重みが 1 トークンにつき 1 回しか使われないため、"
+          "どの重みを常駐させるかは総転送量に影響しない。効くのはバイト数だけ。"
+          "選択方針が意味を持つのは Batch>1・投機デコード・MoE から。");
+  out.set("caveat",
+          "resident_bytes は『重みに割ける VRAM』であり VRAM 総容量ではない。"
+          "KV キャッシュ・アクティベーション・CUDA コンテキストを引くこと。");
+  return out;
+}
+
 }  // namespace alsr

@@ -65,6 +65,16 @@ struct SimConfig {
   u64    max_chunks = 0;
   /// S_stream [byte/token]。0 でなければ token/s を導出する。
   Bytes  per_token_bytes = 0;
+  /// VRAM へ常駐させる重みのバイト数（設計書 §2.4「大きな重み常駐率」）。
+  /// 実行順の先頭から積んでいき、この量に収まる Chunk は「起動時に一度だけ
+  /// 載せる」ものとして定常状態のストリーミング対象から外す。
+  ///
+  /// 注意: これは『重みに割ける VRAM』であって VRAM 総容量ではない。
+  /// KV キャッシュ・アクティベーション・CUDA コンテキストは呼び出し側で引く。
+  ///
+  /// Batch=1 の Dense では各重みが 1 トークンにつき 1 回しか使われないので、
+  /// 「どれを常駐させるか」は総転送量に影響しない。効くのはバイト数だけ。
+  Bytes  resident_bytes = 0;
   /// この Chunk 数を処理した時点で cancel_all() する。0 で無効。
   u64    cancel_at_chunk = 0;
   /// 実バイトを Host Store から slot へ流すか。

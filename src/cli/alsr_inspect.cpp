@@ -31,7 +31,13 @@ void usage() {
   --bandwidths <list>   T_max 表に使う帯域 [GB/s]、カンマ区切り
                         既定: 5,10,12,16,25,28,113
   --resident-mib <n>    常駐候補とみなすテンソルサイズ上限 [MiB] (既定 1)
+  --vram-gb <list>      VRAM 常駐率テーブルに使う「重みに割ける VRAM」[GB]、
+                        カンマ区切り。省略時は総重み量の 0/25/50/75/90% を使う
   --quiet               標準出力のサマリーを抑制する
+
+注意:
+  --vram-gb は VRAM 総容量ではなく『重みに割ける VRAM』である。
+  KV キャッシュ・アクティベーション・CUDA コンテキストは呼び出し側で引くこと。
 )";
 }
 
@@ -63,7 +69,8 @@ int main(int argc, char** argv) {
       return 0;
     }
     args.reject_unknown({"model", "ollama", "manifest-out", "gguf-out", "env-out",
-                         "sha256", "bandwidths", "resident-mib", "quiet", "help"});
+                         "sha256", "bandwidths", "resident-mib", "vram-gb",
+                         "quiet", "help"});
 
     const std::string path = cli::resolve_model_path(args);
     const bool quiet = args.flag("quiet");
@@ -156,6 +163,49 @@ int main(int argc, char** argv) {
                    "実効値は必ずこれより低い。\n";
     }
 
+    // --- VRAM 常駐率テーブル (§2.4) --------------------------------------
+    std::vector<Bytes> resident_list;
+    if (args.has("vram-gb")) {
+      for (const double gb : parse_bandwidths(args.get("vram-gb"))) {
+        resident_list.push_back(static_cast<Bytes>(gb));  // 既に ×1e9 済み
+      }
+    } else {
+      for (const double frac : {0.0, 0.25, 0.50, 0.75, 0.90}) {
+        resident_list.push_back(static_cast<Bytes>(
+            frac * static_cast<double>(manifest.per_token_bytes_upper)));
+      }
+    }
+    const json::Value residency =
+        residency_table(manifest, resident_list, {12e9, 25e9});
+
+    if (!quiet) {
+      std::cout << "\n=== VRAM 常駐率と実効 T_max (§2.4) ===\n";
+      std::cout << "  常駐[GB]   常駐率    毎tok転送[GB]   T_max@12GB/s   T_max@25GB/s\n";
+      for (const json::Value& r : residency.at("rows").as_array()) {
+        if (r.get_bool("fully_resident", false)) {
+          char line[200];
+          std::snprintf(line, sizeof line,
+                        "  %8.2f   %6s    %13s   %12s   %12s   <- 全重みが載る。ALSR 不要\n",
+                        static_cast<double>(r.at("resident_bytes").as_int()) / 1e9,
+                        "100%", "0", "-", "-");
+          std::cout << line;
+          continue;
+        }
+        const auto& t = r.at("t_max").as_array();
+        char line[200];
+        std::snprintf(line, sizeof line,
+                      "  %8.2f   %5.1f%%    %13.3f   %12.4f   %12.4f\n",
+                      static_cast<double>(r.at("resident_bytes").as_int()) / 1e9,
+                      r.at("resident_fraction").as_real() * 100.0,
+                      static_cast<double>(r.at("streamed_bytes_per_token").as_int()) / 1e9,
+                      t.at(0).at("t_max_token_per_s").as_real(),
+                      t.at(1).at("t_max_token_per_s").as_real());
+        std::cout << line;
+      }
+      std::cout << "  ※ Batch=1 Dense では『どれを常駐させるか』は総転送量に影響しない。\n"
+                   "     効くのはバイト数だけ。選択方針が効くのは Batch>1・投機・MoE から。\n";
+    }
+
     // --- 出力 -----------------------------------------------------------
     if (args.has("gguf-out")) {
       const std::string p = args.get("gguf-out");
@@ -167,6 +217,7 @@ int main(int argc, char** argv) {
     if (args.has("manifest-out")) {
       json::Value mj = to_json(manifest);
       mj.set("bandwidth_ceiling", ceiling);
+      mj.set("residency", residency);
       mj.set("gguf_layout", to_json(gguf).at("layout"));
       const std::string p = args.get("manifest-out");
       std::ofstream out(p, std::ios::trunc);
