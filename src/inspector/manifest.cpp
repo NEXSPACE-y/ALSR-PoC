@@ -374,7 +374,9 @@ json::Value residency_table(const Manifest& m,
                             const std::vector<double>& bandwidths) {
   json::Value rows = json::Value::make_array();
   for (const Bytes resident : resident_bytes_list) {
-    if (resident > m.per_token_bytes_upper) {
+    // 等号を含める。resident == S_stream なら流すものが無く、T_max は
+    // 「転送に律速されない」であって 0 ではない。0 を返すと誤読される。
+    if (resident >= m.per_token_bytes_upper) {
       // 常駐量が S_stream を超える = 全部載る = ALSR 不要。黙って丸めない。
       json::Value r = json::Value::make_object();
       r.set("resident_bytes", resident);
@@ -398,8 +400,8 @@ json::Value residency_table(const Manifest& m,
       if (!(b > 0.0)) fail(ErrorKind::Invalid, "bandwidth must be > 0 byte/s");
       json::Value t = json::Value::make_object();
       t.set("bandwidth_gb_per_s", b / 1e9);
-      t.set("t_max_token_per_s",
-            streamed == 0 ? 0.0 : b / static_cast<double>(streamed));
+      // streamed == 0 は上の分岐で除いてあるので、ここは必ず正。
+      t.set("t_max_token_per_s", b / static_cast<double>(streamed));
       tmax.push_back(std::move(t));
     }
     r.set("t_max", std::move(tmax));

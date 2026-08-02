@@ -308,3 +308,54 @@ TEST_CASE("統合: 設定の JSON 往復", "[integration]") {
   bad.set("ring", ring);
   REQUIRE_THROWS_AS(SimConfig::from_json(bad), Error);
 }
+
+TEST_CASE("統合: resident_bytes は定常状態の転送量を減らす", "[integration]") {
+  Built b("it-resident");
+
+  const SimConfig base = healthy_config(b);
+  const SimResult full = run_simulation(base, "run-res-0", nullptr);
+
+  // 総バイトのおよそ半分を常駐させる
+  SimConfig half = base;
+  half.resident_bytes = full.summary.total_bytes / 2;
+  const SimResult r = run_simulation(half, "run-res-half", nullptr);
+
+  REQUIRE(r.summary.resident_bytes > 0);
+  REQUIRE(r.summary.resident_chunk_count > 0);
+  REQUIRE(r.summary.resident_bytes <= half.resident_bytes);
+  // 常駐分は流れない
+  REQUIRE(r.summary.total_bytes ==
+          full.summary.total_bytes - r.summary.resident_bytes);
+  REQUIRE(r.summary.checksum_failures == 0);
+  REQUIRE(r.summary.order_violations == 0);
+  REQUIRE(r.summary.chunk_count < full.summary.chunk_count);
+}
+
+TEST_CASE("統合: 全部常駐させようとしたら明示的に失敗する", "[integration]") {
+  Built b("it-resident-all");
+  SimConfig cfg = healthy_config(b);
+  cfg.resident_bytes = 1ull << 40;  // 明らかに全部載る
+
+  try {
+    (void)run_simulation(cfg, "run-res-all", nullptr);
+    FAIL("should have thrown");
+  } catch (const Error& e) {
+    REQUIRE(e.kind() == ErrorKind::Invalid);
+    REQUIRE(e.raw().find("ALSR が不要") != std::string::npos);
+  }
+}
+
+TEST_CASE("統合: 合成 Chunk では resident_bytes を拒否する", "[integration]") {
+  SimConfig cfg;
+  cfg.plan_path = "";              // synthetic
+  cfg.synthetic_total_bytes = 64 * MiB;
+  cfg.synthetic_chunk_bytes = 8 * MiB;
+  cfg.fixed.chunk_size = 8 * MiB;
+  cfg.ring_depth = 4;
+  cfg.prefetch_depth = 3;
+  cfg.resident_bytes = 16 * MiB;
+  cfg.backend.pinned_limit_bytes = 1 * GiB;
+  cfg.backend.device_memory_bytes = 1 * GiB;
+
+  REQUIRE_THROWS_AS(run_simulation(cfg, "run-res-synth", nullptr), Error);
+}

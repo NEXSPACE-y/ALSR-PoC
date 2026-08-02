@@ -231,3 +231,38 @@ TEST_CASE("Manifest: S_stream の上下限と埋め込み共有の扱い", "[uni
           25e9 / static_cast<double>(m.per_token_bytes_upper));
   REQUIRE_THROWS_AS(bandwidth_ceiling_table(m, {0.0}), Error);
 }
+
+TEST_CASE("Residency: 常駐バイト数だけが実効 S_stream を決める", "[unit][manifest]") {
+  TempDir tmp("residency");
+  const std::string p = tmp.file("model.gguf");
+  write_test_gguf(p, gemma_like_specs());
+
+  const GgufFile f = read_gguf(p);
+  const Manifest m = build_manifest(f);
+  const Bytes total = m.per_token_bytes_upper;
+
+  const json::Value t =
+      residency_table(m, {Bytes{0}, total / 4, total / 2, total}, {25e9});
+  const auto& rows = t.at("rows").as_array();
+  REQUIRE(rows.size() == 4);
+
+  // 常駐 0 なら S_stream そのまま
+  REQUIRE(rows[0].at("streamed_bytes_per_token").as_int() ==
+          static_cast<i64>(total));
+  REQUIRE(rows[0].at("t_max").as_array()[0].at("t_max_token_per_s").as_real() ==
+          25e9 / static_cast<double>(total));
+
+  // 常駐が増えるほど毎トークン転送量は単調に減る
+  for (std::size_t i = 0; i + 1 < 3; ++i) {
+    REQUIRE(rows[i].at("streamed_bytes_per_token").as_int() >
+            rows[i + 1].at("streamed_bytes_per_token").as_int());
+  }
+
+  // 全部常駐なら「ALSR 不要」と明示する（黙って 0 除算しない）
+  REQUIRE(rows[3].get_bool("fully_resident", false));
+  REQUIRE_FALSE(rows[3].get_string("note", "").empty());
+
+  // 常駐が S_stream を超えても落ちない
+  REQUIRE_NOTHROW(residency_table(m, {total * 2}, {25e9}));
+  REQUIRE_THROWS_AS(residency_table(m, {Bytes{0}}, {0.0}), Error);
+}
