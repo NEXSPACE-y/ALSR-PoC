@@ -25,6 +25,7 @@ struct SimChunk {
   Bytes bytes = 0;
   u32   expected_crc = 0;
   bool  crc_known = false;
+  bool  per_token = true;  ///< 定常状態で毎トークン流すか
 };
 
 /// 直列エンジンが作る互いに素な区間列どうしの重なりを測る。
@@ -116,6 +117,7 @@ std::vector<SimChunk> load_plan_chunks(const std::string& plan_path,
     s.bytes         = c.bytes;
     s.expected_crc  = c.crc32c;
     s.crc_known     = c.checksum_computed;
+    s.per_token     = c.is_per_token();
     out.push_back(s);
   }
   return out;
@@ -196,6 +198,7 @@ json::Value SimConfig::to_json() const {
   run.set("max_chunks", max_chunks);
   run.set("per_token_bytes", per_token_bytes);
   run.set("resident_bytes", resident_bytes);
+  run.set("exclude_non_per_token_chunks", exclude_non_per_token_chunks);
   run.set("cancel_at_chunk", cancel_at_chunk);
   run.set("materialize_data", materialize_data);
   j.set("run", std::move(run));
@@ -286,6 +289,8 @@ SimConfig SimConfig::from_json(const json::Value& v) {
         r->get_int("per_token_bytes", static_cast<i64>(c.per_token_bytes)));
     c.resident_bytes = static_cast<Bytes>(
         r->get_int("resident_bytes", static_cast<i64>(c.resident_bytes)));
+    c.exclude_non_per_token_chunks = r->get_bool(
+        "exclude_non_per_token_chunks", c.exclude_non_per_token_chunks);
     c.cancel_at_chunk = static_cast<u64>(
         r->get_int("cancel_at_chunk", static_cast<i64>(c.cancel_at_chunk)));
     c.materialize_data = r->get_bool("materialize_data", c.materialize_data);
@@ -331,6 +336,28 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
   // --- VRAM 常駐分をストリーミング対象から外す (§2.4) ------------------
   // 実行順の先頭から積む。Batch=1 Dense ではどれを選んでも総転送量は同じなので、
   // 選択方針は実装の単純さで決めてよい（residency_table() のコメント参照）。
+  // 毎トークン読まれない Chunk（視覚エンコーダ・投影器など）は定常状態の
+  // ストリーミング対象ではない。常に「常駐扱い」として外す。
+  Bytes       non_per_token_bytes = 0;
+  std::size_t non_per_token_chunks = 0;
+  if (!synthetic && cfg.exclude_non_per_token_chunks) {
+    std::vector<SimChunk> keep;
+    keep.reserve(base_chunks.size());
+    for (const SimChunk& c : base_chunks) {
+      if (c.per_token) {
+        keep.push_back(c);
+      } else {
+        non_per_token_bytes += c.bytes;
+        ++non_per_token_chunks;
+      }
+    }
+    if (keep.empty()) {
+      fail(ErrorKind::Invalid,
+           "毎トークン流す Chunk が 1 つも無い。plan と manifest の対応を確認すること");
+    }
+    base_chunks.swap(keep);
+  }
+
   Bytes       resident_actual = 0;
   std::size_t resident_chunks = 0;
   if (cfg.resident_bytes > 0) {
@@ -401,10 +428,14 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
        << " を超える。NFR-03 によりここで停止する";
     fail(ErrorKind::Invalid, os.str());
   }
+  // 常駐重み + リングバッファが VRAM に収まらなければ物理的に成立しない。
+  // 常駐分を数えずに「収まった」と言わない。
+  const Bytes device_needed = ring_bytes + cfg.resident_bytes;
   if (cfg.backend.device_memory_bytes > 0 &&
-      ring_bytes > cfg.backend.device_memory_bytes) {
+      device_needed > cfg.backend.device_memory_bytes) {
     std::ostringstream os;
-    os << "ring 全体 " << ring_bytes << " が device memory "
+    os << "VRAM 不足: 常駐重み " << cfg.resident_bytes << " + ring "
+       << ring_bytes << " = " << device_needed << " が device memory "
        << cfg.backend.device_memory_bytes << " を超える";
     fail(ErrorKind::Invalid, os.str());
   }
@@ -544,19 +575,19 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
     synth_cursor = 0;
 
     for (;;) {
-      // --- 次の Chunk を決める ---------------------------------------
-      SimChunk next;
+      // --- 候補を用意する（FR-06「次Chunk」の入力） --------------------
+      // Scheduler が実際に選ぶまで消費しない。初期版は常に先頭を返すが、
+      // 選択の責務は Scheduler 側にある。
+      std::vector<std::size_t> pending;
       if (synthetic) {
         if (synth_cursor >= cfg.synthetic_total_bytes) break;
-        const Bytes remain = cfg.synthetic_total_bytes - synth_cursor;
-        next.bytes         = std::min(current_chunk_size, remain);
-        next.source_offset = synth_cursor;
-        next.chunk_id      = produced;
-        next.crc_known     = cfg.backend.verify_checksums;
-        synth_cursor += next.bytes;
+        pending.push_back(0);  // 合成は逐次生成なので候補は 1 つ
       } else {
         if (plan_idx >= base_chunks.size()) break;
-        next = base_chunks[plan_idx++];
+        // 先読み候補は残り全部（実行順）。窓を切らずに渡す。
+        for (std::size_t k = plan_idx; k < base_chunks.size(); ++k) {
+          pending.push_back(k);
+        }
       }
 
       if (cfg.max_chunks != 0 && produced >= cfg.max_chunks) { stop = true; break; }
@@ -567,6 +598,7 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
 
       // --- Scheduler ---------------------------------------------------
       SchedulerInput in;
+      in.pending_chunk_indices  = pending;
       in.chunk_index            = produced;
       in.queue_depth            = inflight.size();
       in.ring_depth             = cfg.ring_depth;
@@ -593,6 +625,33 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
       }
       if (synthetic && d.chunk_size > 0) current_chunk_size = d.chunk_size;
       current_prefetch = std::clamp<std::size_t>(d.prefetch_depth, 1, cfg.ring_depth);
+
+      // --- Scheduler が選んだ Chunk を取り出す -------------------------
+      if (d.next_chunk_index == SchedulerDecision::kNoChunk) {
+        fail(ErrorKind::State,
+             "scheduler が候補ありの状態で next_chunk_index を返さなかった");
+      }
+      SimChunk next;
+      if (synthetic) {
+        const Bytes remain = cfg.synthetic_total_bytes - synth_cursor;
+        next.bytes         = std::min(current_chunk_size, remain);
+        next.source_offset = synth_cursor;
+        next.chunk_id      = produced;
+        next.crc_known     = cfg.backend.verify_checksums;
+        synth_cursor += next.bytes;
+      } else {
+        if (d.next_chunk_index >= base_chunks.size()) {
+          fail(ErrorKind::State, "scheduler が範囲外の chunk index を返した");
+        }
+        next = base_chunks[d.next_chunk_index];
+        // 初期版の Scheduler は実行順の先頭しか返さないので、消費位置は
+        // 単調に進む。並べ替えを許すなら未消費集合の管理が要る。
+        if (d.next_chunk_index != plan_idx) {
+          fail(ErrorKind::Unsupported,
+               "Chunk の並べ替えは未実装（MoE の投機的プリフェッチで必要になる）");
+        }
+        ++plan_idx;
+      }
 
       // --- スロット確保（必要なら古いものを消費して空ける） -------------
       while (inflight.size() >= current_prefetch || !ring.has_free()) {
@@ -775,8 +834,9 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
   s.scheduler_changes = sched->change_count();
   s.ring_wrap_arounds = ring.stats().wrap_arounds;
   s.data_materialized = cfg.materialize_data;
-  s.resident_bytes = resident_actual;
-  s.resident_chunk_count = resident_chunks;
+  s.resident_bytes = resident_actual + non_per_token_bytes;
+  s.resident_chunk_count = resident_chunks + non_per_token_chunks;
+  s.non_per_token_bytes = non_per_token_bytes;
 
   // ここでは environment_recorded は false のまま。証拠を書き出す側
   // (alsr-sim) が記録後に再評価する。空の failures と pass=false という

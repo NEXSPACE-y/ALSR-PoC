@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "Run 06 — 常駐 0 の測定点。",
+    "",
+    "『毎トークン全重みを流す』構成は設計書 §2.3 が正面から扱う場合であり、",
+    "非現実的と決めつけて測らないことは許されない。常駐率 0 は S_stream の",
+    "特殊ケースとして正当な測定点である（設計書 §2.1）。",
+    "",
+    "Run 04 との差が、そのまま『常駐率がどれだけ効くか』の実測値になる。",
+    "S_stream = 18,654,198,000 B/token（常駐 0）"
+  ],
+  "label": "run06-31b-resident0-pcie4",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "results/plan_gemma4_31b_256mib.json",
+    "model_path": "",
+    "host_store_mode": "mmap"
+  },
+  "ring": {
+    "ring_depth": 4,
+    "prefetch_depth": 3
+  },
+  "scheduler": {
+    "type": "fixed",
+    "stats_window": 8,
+    "fixed_chunk_size": 268435456,
+    "fixed_prefetch_depth": 3
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 25.0,
+      "fixed_latency_s": 2e-05,
+      "jitter_fraction": 0.05
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 5e-06,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 300000000000,
+    "consume_jitter_fraction": 0.02,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "resident_bytes": 0,
+    "exclude_non_per_token_chunks": true,
+    "per_token_bytes": 18654198000,
+    "materialize_data": true
+  }
+}

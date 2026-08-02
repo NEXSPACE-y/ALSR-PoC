@@ -23,7 +23,17 @@ CONFIGS=(
   configs/run01_gemma4_fixed_pcie4.json
   configs/run02_gemma4_adaptive_pcie3.json
   configs/run03_synthetic_adaptive_healthy.json
+  configs/run04_gemma4_31b_resident10_pcie4.json
+  configs/run05_gemma4_31b_resident10_pcie3.json
+  configs/run06_gemma4_31b_resident0_pcie4.json
 )
+
+# 31B の plan が無ければ作る（VRAM 超過領域の Run に必要）
+PLAN31="${PLAN31:-$RESULTS/plan_gemma4_31b_256mib.json}"
+if [[ ! -f "$PLAN31" ]]; then
+  echo "31B の plan がまだ無いので生成する: $PLAN31"
+  ./build/bin/alsr-plan --ollama gemma4:31b --chunk-mib 256 --out "$PLAN31"
+fi
 
 TMPDIR_RUN="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_RUN"' EXIT

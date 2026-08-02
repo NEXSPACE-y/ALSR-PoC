@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "Run 04 — ALSR の前提が実際に成立する領域での測定。",
+    "",
+    "gemma4:31b のテキスト側重みは 18,654,198,000 B (17.37 GiB) で、",
+    "RTX 3060 の 12 GB VRAM を大きく超える。ここが設計書 §11 Phase 6 の",
+    "「31B前後（VRAM超過の実用検証）」に対応する領域である。",
+    "",
+    "VRAM 予算の内訳（重みに割ける分の見積り）:",
+    "  12.0 GB  VRAM 総容量",
+    "  -1.0 GB  リングバッファ (256MiB x 4)",
+    "  -1.0 GB  KV キャッシュ・アクティベーション・CUDA コンテキストの想定",
+    "  = 10.0 GB を重み常駐に充てる",
+    "",
+    "したがって S_stream = 18,654,198,000 - 10,000,000,000 = 8,654,198,000 B/token。",
+    "設計書 §2.1 の定義（転送が必要な重み量）そのものである。",
+    "",
+    "視覚エンコーダ (1,186,547,904 B) と投影器 (12,386,304 B) は",
+    "テキスト生成の毎トークンでは読まれないので、plan 側で per_token=false と",
+    "判定され、定常ストリーミングから自動的に外れる。",
+    "",
+    "前提コマンド:",
+    "  ./build/bin/alsr-plan --ollama gemma4:31b --chunk-mib 256 \\",
+    "      --out results/plan_gemma4_31b_256mib.json"
+  ],
+  "label": "run04-31b-resident10-pcie4",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "results/plan_gemma4_31b_256mib.json",
+    "model_path": "",
+    "host_store_mode": "mmap"
+  },
+  "ring": {
+    "ring_depth": 4,
+    "prefetch_depth": 3
+  },
+  "scheduler": {
+    "type": "fixed",
+    "stats_window": 8,
+    "fixed_chunk_size": 268435456,
+    "fixed_prefetch_depth": 3
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 25.0,
+      "fixed_latency_s": 0.00002,
+      "jitter_fraction": 0.05
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 0.000005,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 300000000000,
+    "consume_jitter_fraction": 0.02,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "resident_bytes": 10000000000,
+    "exclude_non_per_token_chunks": true,
+    "per_token_bytes": 8654198000,
+    "materialize_data": true
+  }
+}

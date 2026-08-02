@@ -4,6 +4,8 @@
 
 #include "alsr/checksum.hpp"
 #include "alsr/env.hpp"
+#include "alsr/gguf.hpp"
+#include "alsr/manifest.hpp"
 #include "alsr/sim.hpp"
 #include "alsr/telemetry.hpp"
 #include "cli_common.hpp"
@@ -77,6 +79,34 @@ int main(int argc, char** argv) {
     SimResult result = run_simulation(cfg, run_id, writer.get());
     if (writer) writer->close();
 
+    // NFR-02「モデル digest を保存する」。
+    // plan に SHA-256 があればそれを使う。無ければ Ollama blob の
+    // ファイル名がそのまま SHA-256 なのでそこから取る。捏造はしない。
+    if (!cfg.plan_path.empty()) {
+      const json::Value plan = json::Value::parse_file(cfg.plan_path);
+      const std::string from_plan = plan.get_string("model_sha256", "");
+      if (!from_plan.empty()) {
+        result.summary.model_digest = from_plan;
+        result.summary.model_digest_source = "plan.model_sha256 (alsr-plan --sha256)";
+      } else {
+        const std::string mp = cfg.model_path.empty()
+                                   ? plan.get_string("model_path", "")
+                                   : cfg.model_path;
+        const std::size_t slash = mp.find_last_of('/');
+        const std::string base = slash == std::string::npos ? mp : mp.substr(slash + 1);
+        if (base.rfind("sha256-", 0) == 0 && base.size() == 71) {
+          result.summary.model_digest = base.substr(7);
+          result.summary.model_digest_source =
+              "Ollama blob のファイル名（内容の SHA-256 そのもの）";
+        } else {
+          result.summary.model_digest_source =
+              "未記録（alsr-plan --sha256 で計算できる）";
+        }
+      }
+    } else {
+      result.summary.model_digest_source = "合成 Chunk の Run。対象モデルが無い";
+    }
+
     const json::Value environment = collect_environment();
     result.summary.environment_recorded = write_evidence;
     if (write_evidence) {
@@ -90,6 +120,34 @@ int main(int argc, char** argv) {
     full_config.set("source_config_path", config_path);
 
     if (write_evidence) {
+      // FR-11: Evidence Pack へ manifest.json を含める。
+      // 実 plan の Run では対象モデルから再生成し、合成 Run では
+      // 「対象モデルが無い」ことを明示した stub を置く（空欄を作らない）。
+      json::Value manifest_json = json::Value::make_object();
+      if (!cfg.plan_path.empty()) {
+        std::string model = cfg.model_path;
+        if (model.empty()) {
+          const json::Value plan = json::Value::parse_file(cfg.plan_path);
+          model = plan.get_string("model_path", "");
+        }
+        if (model.empty()) {
+          manifest_json.set("available", false);
+          manifest_json.set("reason", "plan に model_path が無い");
+        } else {
+          const GgufFile g = read_gguf(model);
+          manifest_json = to_json(build_manifest(g));
+          manifest_json.set("available", true);
+          manifest_json.set("regenerated_for_run", true);
+        }
+      } else {
+        manifest_json.set("available", false);
+        manifest_json.set("reason",
+                          "合成 Chunk の Run。対象モデルが存在しないため "
+                          "manifest は生成できない");
+        manifest_json.set("synthetic_total_bytes", cfg.synthetic_total_bytes);
+        manifest_json.set("synthetic_chunk_bytes", cfg.synthetic_chunk_bytes);
+      }
+      pack->write_json("manifest.json", manifest_json);
       pack->write_json("config.json", full_config);
       pack->write_json("environment.json", environment);
       pack->write_json("summary.json", result.summary.to_json());

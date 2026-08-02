@@ -22,6 +22,15 @@ void BandwidthProfile::validate() const {
     fail(ErrorKind::Invalid,
          "pause_duration_s >= pause_period_s では常時停止になる");
   }
+  if (burst_period_s < 0.0 || burst_duration_s < 0.0) {
+    fail(ErrorKind::Invalid, "burst_period_s / burst_duration_s must be >= 0");
+  }
+  if (burst_period_s > 0.0 && burst_duration_s > burst_period_s) {
+    fail(ErrorKind::Invalid, "burst_duration_s > burst_period_s は成立しない");
+  }
+  if (!(burst_multiplier > 0.0) || !std::isfinite(burst_multiplier)) {
+    fail(ErrorKind::Invalid, "burst_multiplier must be finite and > 0");
+  }
 }
 
 json::Value BandwidthProfile::to_json() const {
@@ -32,6 +41,9 @@ json::Value BandwidthProfile::to_json() const {
   j.set("jitter_fraction", jitter_fraction);
   j.set("pause_period_s", pause_period_s);
   j.set("pause_duration_s", pause_duration_s);
+  j.set("burst_period_s", burst_period_s);
+  j.set("burst_duration_s", burst_duration_s);
+  j.set("burst_multiplier", burst_multiplier);
   return j;
 }
 
@@ -45,6 +57,9 @@ BandwidthProfile BandwidthProfile::from_json(const json::Value& v) {
   p.jitter_fraction  = v.get_real("jitter_fraction", p.jitter_fraction);
   p.pause_period_s   = v.get_real("pause_period_s", p.pause_period_s);
   p.pause_duration_s = v.get_real("pause_duration_s", p.pause_duration_s);
+  p.burst_period_s   = v.get_real("burst_period_s", p.burst_period_s);
+  p.burst_duration_s = v.get_real("burst_duration_s", p.burst_duration_s);
+  p.burst_multiplier = v.get_real("burst_multiplier", p.burst_multiplier);
   p.validate();
   return p;
 }
@@ -55,9 +70,24 @@ BandwidthModel::BandwidthModel(BandwidthProfile profile, u64 seed)
   next_pause_at_s_ = profile_.pause_period_s;
 }
 
+bool BandwidthModel::in_burst(double now_s) const noexcept {
+  if (profile_.burst_period_s <= 0.0 || profile_.burst_duration_s <= 0.0) {
+    return false;
+  }
+  const double phase = std::fmod(now_s, profile_.burst_period_s);
+  return phase >= 0.0 && phase < profile_.burst_duration_s;
+}
+
 double BandwidthModel::transfer_time_s(Bytes n, double now_s) {
-  double t = profile_.fixed_latency_s +
-             static_cast<double>(n) / profile_.bytes_per_s;
+  // burst 中は帯域が burst_multiplier 倍になる（>1 で高速、<1 で低下）。
+  // 判定は転送開始時刻で行う。区間途中で切り替わる場合の按分はしない。
+  // 近似であることを明示するため、burst 命中数を別途数える。
+  double bw = profile_.bytes_per_s;
+  if (in_burst(now_s)) {
+    bw *= profile_.burst_multiplier;
+    ++burst_hits_;
+  }
+  double t = profile_.fixed_latency_s + static_cast<double>(n) / bw;
 
   if (profile_.jitter_fraction > 0.0) {
     std::uniform_real_distribution<double> dist(-profile_.jitter_fraction,

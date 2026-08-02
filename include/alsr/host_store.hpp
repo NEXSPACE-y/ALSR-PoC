@@ -35,6 +35,16 @@ public:
   HostStore(const HostStore&) = delete;
   HostStore& operator=(const HostStore&) = delete;
 
+  /// [offset, offset+len) を RAM へ事前ロードする (FR-04)。
+  ///   Mmap      : madvise(MADV_WILLNEED) + 実際に触ってページを常駐させる
+  ///   Read      : 読み捨てでページキャッシュへ載せる
+  ///   Synthetic : 何もしない（生成なので事前ロードの意味が無い）
+  /// len == 0 ならファイル全体。戻り値は実際に触ったバイト数。
+  Bytes preload(Bytes offset = 0, Bytes len = 0);
+
+  /// preload で触った累計バイト数。
+  [[nodiscard]] Bytes bytes_preloaded() const noexcept { return bytes_preloaded_; }
+
   /// [offset, offset+len) を dst へコピーする。
   /// Mmap では memcpy、Read では pread、Synthetic では生成。
   void read_into(Bytes offset, Bytes len, u8* dst);
@@ -56,6 +66,7 @@ private:
   HostStoreMode mode_;
   Bytes         file_size_ = 0;
   Bytes         bytes_read_ = 0;
+  Bytes         bytes_preloaded_ = 0;
   int           fd_ = -1;
   void*         map_ = nullptr;
   std::size_t   map_len_ = 0;

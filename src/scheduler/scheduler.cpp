@@ -12,8 +12,11 @@ public:
 
   [[nodiscard]] std::string name() const override { return "fixed"; }
 
-  SchedulerDecision decide(const SchedulerInput&) override {
+  SchedulerDecision decide(const SchedulerInput& in) override {
     SchedulerDecision d;
+    d.next_chunk_index = in.pending_chunk_indices.empty()
+                             ? SchedulerDecision::kNoChunk
+                             : in.pending_chunk_indices.front();
     d.chunk_size = cfg_.chunk_size;
     d.prefetch_depth = cfg_.prefetch_depth;
     d.action = "keep";
@@ -57,6 +60,12 @@ public:
   // §8.3 の制御則 + ヒステリシス
   SchedulerDecision decide(const SchedulerInput& in) override {
     SchedulerDecision d;
+    // 初期版は実行順の先頭を選ぶ。設計書 §8.3 の制御則は Chunk サイズと
+    // 先読み距離しか動かさないので、順序の入れ替えはしない。
+    // 入れ替えが要るのは MoE の投機的プリフェッチから（§2.5）。
+    d.next_chunk_index = in.pending_chunk_indices.empty()
+                             ? SchedulerDecision::kNoChunk
+                             : in.pending_chunk_indices.front();
     d.chunk_size = chunk_size_;
     d.prefetch_depth = prefetch_depth_;
     d.action = "keep";
@@ -173,6 +182,7 @@ public:
 private:
   void commit(const SchedulerInput& in, SchedulerDecision& d,
               const char* action, std::string reason) {
+    // next_chunk_index は decide() で既に決めてある。ここでは触らない。
     d.chunk_size = chunk_size_;
     d.prefetch_depth = prefetch_depth_;
     d.action = action;

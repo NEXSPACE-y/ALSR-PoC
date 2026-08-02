@@ -164,6 +164,7 @@ json::Value RunSummary::to_json() const {
   mem.set("peak_device_bytes", peak_device_bytes);
   mem.set("resident_bytes", resident_bytes);
   mem.set("resident_chunk_count", resident_chunk_count);
+  mem.set("non_per_token_bytes", non_per_token_bytes);
   j.set("memory", std::move(mem));
 
   json::Value corr = json::Value::make_object();
@@ -177,6 +178,8 @@ json::Value RunSummary::to_json() const {
 
   j.set("scheduler_changes", scheduler_changes);
   j.set("metrics_sha256", metrics_sha256);
+  j.set("model_digest", model_digest);
+  j.set("model_digest_source", model_digest_source);
   j.set("environment_recorded", environment_recorded);
   j.set("data_materialized", data_materialized);
 
@@ -371,6 +374,8 @@ std::string render_report(const RunSummary& s, const json::Value& config,
 
   o << "## 証拠\n\n";
   o << "- `metrics.jsonl` SHA-256: `" << s.metrics_sha256 << "`\n";
+  o << "- モデル digest: `" << (s.model_digest.empty() ? "未記録" : s.model_digest)
+    << "` (" << s.model_digest_source << ")\n";
   o << "- environment 記録: " << (s.environment_recorded ? "あり" : "なし") << "\n\n";
 
   o << "## 設定\n\n```json\n" << config.dump(2) << "\n```\n\n";

@@ -29,6 +29,17 @@ struct BandwidthProfile {
   /// 一時停止の長さ [s]
   double pause_duration_s = 0.0;
 
+  // --- burst (FR-07) ---------------------------------------------------
+  /// burst の周期 [s]。0 で無効。
+  /// 実 PCIe / DRAM は一定帯域ではなく、短時間だけ平均を超える（あるいは
+  /// 下回る）ことがある。burst_multiplier > 1 で一時的な高速化、< 1 で
+  /// 一時的な低下を模擬する。
+  double burst_period_s = 0.0;
+  /// 1 周期のうち burst 状態でいる長さ [s]
+  double burst_duration_s = 0.0;
+  /// burst 中の帯域倍率。1.0 で無効。
+  double burst_multiplier = 1.0;
+
   [[nodiscard]] json::Value to_json() const;
   static BandwidthProfile from_json(const json::Value& v);
   void validate() const;
@@ -44,6 +55,9 @@ public:
 
   [[nodiscard]] const BandwidthProfile& profile() const noexcept { return profile_; }
   [[nodiscard]] u64 pause_hits() const noexcept { return pause_hits_; }
+  [[nodiscard]] u64 burst_hits() const noexcept { return burst_hits_; }
+  /// now_s が burst 区間の内側か。
+  [[nodiscard]] bool in_burst(double now_s) const noexcept;
   /// jitter を無視した理想時間（オーバーヘッド比の算出に使う）。
   [[nodiscard]] double ideal_time_s(Bytes n) const noexcept {
     return static_cast<double>(n) / profile_.bytes_per_s;
@@ -53,6 +67,7 @@ private:
   BandwidthProfile      profile_;
   std::mt19937_64       rng_;
   u64                   pause_hits_ = 0;
+  u64                   burst_hits_ = 0;
   double                next_pause_at_s_ = 0.0;
 };
 

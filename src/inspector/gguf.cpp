@@ -340,6 +340,10 @@ json::Value to_json(const GgufFile& f) {
     j.set("rel_offset", t.rel_offset);
     j.set("abs_offset", t.abs_offset);
     j.set("bytes", t.nbytes);
+    // FR-01「alignment を出力する」。ファイル全体の値と、このテンソルが
+    // それを満たしているかを両方出す。
+    j.set("alignment", f.alignment);
+    j.set("alignment_ok", (t.rel_offset % f.alignment) == 0);
     const GgmlTypeInfo* info = ggml_type_info(t.type_id);
     j.set("block_elems", info ? info->block_elems : 0);
     j.set("block_bytes", info ? info->block_bytes : 0);

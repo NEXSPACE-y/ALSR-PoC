@@ -81,6 +81,12 @@ int main(int argc, char** argv) {
       std::cout << "  padding bytes       : " << plan.padding_bytes_total << "\n";
       std::cout << "  min / max chunk     : " << plan.min_chunk_bytes() << " / "
                 << plan.max_chunk_bytes() << "\n";
+      std::cout << "  per-token bytes     : " << plan.per_token_bytes_total
+                << " (" << human_bytes(plan.per_token_bytes_total) << ")\n";
+      std::cout << "  非per-token chunk   : " << plan.non_per_token_chunk_count
+                << " 個 / " << plan.non_per_token_chunk_bytes << " bytes ("
+                << human_bytes(plan.non_per_token_chunk_bytes)
+                << ") — 視覚エンコーダ等。定常ストリーミング対象外\n";
       std::cout << "  split tensors       : " << plan.split_tensor_count << "\n";
       std::cout << "  exec-order 逆転     : " << plan.exec_order_inversions
                 << " / " << (plan.chunks.empty() ? 0 : plan.chunks.size() - 1)

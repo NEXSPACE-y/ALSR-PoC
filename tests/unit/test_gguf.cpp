@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <fstream>
+#include <unordered_map>
 #include <vector>
 
 #include "alsr/ggml_types.hpp"
@@ -219,16 +221,16 @@ TEST_CASE("Manifest: S_stream の上下限と埋め込み共有の扱い", "[uni
 
   const Bytes embd = ggml_tensor_bytes(14, {3840, 1024});
   REQUIRE_FALSE(m.has_separate_output_tensor);
-  REQUIRE(m.per_token_bytes_lower == m.total_tensor_bytes - embd);
-  REQUIRE(m.per_token_bytes_upper == m.total_tensor_bytes);
+  REQUIRE(m.per_token_demand_lower == m.total_tensor_bytes - embd);
+  REQUIRE(m.per_token_demand_upper == m.total_tensor_bytes);
 
   // 上限は下限より大きい（tied embedding を全読みする場合）
-  REQUIRE(m.per_token_bytes_upper > m.per_token_bytes_lower);
+  REQUIRE(m.per_token_demand_upper > m.per_token_demand_lower);
 
   const json::Value tbl = bandwidth_ceiling_table(m, {25e9});
   const json::Value& row = tbl.at("rows").as_array().at(0);
   REQUIRE(row.at("t_max_token_per_s_upper_bound_case").as_real() ==
-          25e9 / static_cast<double>(m.per_token_bytes_upper));
+          25e9 / static_cast<double>(m.per_token_demand_upper));
   REQUIRE_THROWS_AS(bandwidth_ceiling_table(m, {0.0}), Error);
 }
 
@@ -239,7 +241,7 @@ TEST_CASE("Residency: 常駐バイト数だけが実効 S_stream を決める", 
 
   const GgufFile f = read_gguf(p);
   const Manifest m = build_manifest(f);
-  const Bytes total = m.per_token_bytes_upper;
+  const Bytes total = m.per_token_demand_upper;
 
   const json::Value t =
       residency_table(m, {Bytes{0}, total / 4, total / 2, total}, {25e9});
@@ -265,4 +267,108 @@ TEST_CASE("Residency: 常駐バイト数だけが実効 S_stream を決める", 
   // 常駐が S_stream を超えても落ちない
   REQUIRE_NOTHROW(residency_table(m, {total * 2}, {25e9}));
   REQUIRE_THROWS_AS(residency_table(m, {Bytes{0}}, {0.0}), Error);
+}
+
+TEST_CASE("Manifest: 視覚エンコーダと投影器を分離し S_stream から除く",
+          "[unit][manifest]") {
+  TempDir tmp("manifest-vision");
+  const std::string p = tmp.file("model.gguf");
+
+  // マルチモーダル GGUF の構造を模す（gemma4:31b の実名前規則に合わせる）
+  auto specs = gemma_like_specs();
+  specs.push_back({"mm.input_projection.weight", 1, {2048, 512}});
+  for (int v = 0; v < 2; ++v) {
+    const std::string q = "v.blk." + std::to_string(v) + ".";
+    specs.push_back({q + "attn_q.weight", 1, {1152, 1152}});
+    specs.push_back({q + "attn_k.weight", 1, {1152, 1152}});
+    specs.push_back({q + "attn_v.weight", 1, {1152, 1152}});
+    specs.push_back({q + "attn_out.weight", 1, {1152, 1152}});
+    specs.push_back({q + "attn_q_norm.weight", 0, {72}});
+    specs.push_back({q + "attn_k_norm.weight", 0, {72}});
+    specs.push_back({q + "attn_post_norm.weight", 0, {1152}});
+    specs.push_back({q + "ffn_post_norm.weight", 0, {1152}});
+    specs.push_back({q + "ffn_gate.weight", 1, {1152, 4304}});
+    specs.push_back({q + "ffn_up.weight", 1, {1152, 4304}});
+    specs.push_back({q + "ffn_down.weight", 1, {4304, 1152}});
+    specs.push_back({q + "ln1.weight", 0, {1152}});
+    specs.push_back({q + "ln2.weight", 0, {1152}});
+  }
+  specs.push_back({"v.patch_embd.weight", 1, {1152, 768}});
+  specs.push_back({"v.position_embd.weight", 0, {1152, 4096}});
+  specs.push_back({"v.std_scale", 0, {1152}});
+  specs.push_back({"v.std_bias", 0, {1152}});
+  write_test_gguf(p, specs);
+
+  const GgufFile f = read_gguf(p);
+  const Manifest m = build_manifest(f);
+
+  // すべて分類できること（推測ではなく名前規則で）
+  REQUIRE(m.unknown_count == 0);
+  REQUIRE(m.has_vision_tower);
+  REQUIRE(m.vision_block_count == 2);
+  REQUIRE(m.vision_bytes > 0);
+  REQUIRE(m.projector_bytes > 0);
+
+  // 内訳が総量と一致する
+  REQUIRE(m.text_bytes + m.vision_bytes + m.projector_bytes ==
+          m.total_tensor_bytes);
+
+  // 視覚側は毎トークン読まれないので S_stream に入らない
+  REQUIRE(m.per_token_demand_upper == m.text_bytes);
+  REQUIRE(m.per_token_demand_upper < m.total_tensor_bytes);
+
+  // 視覚側の entry は per_token_full_read が false
+  for (const auto& e : m.entries) {
+    if (e.subsystem != Subsystem::Text) {
+      INFO(e.name);
+      REQUIRE_FALSE(e.per_token_full_read);
+    }
+  }
+
+  // 人間の確認を促す注記が出ること（黙って落とさない）
+  bool noted = false;
+  for (const auto& n : m.review_notes) {
+    if (n.find("視覚エンコーダ") != std::string::npos) noted = true;
+  }
+  REQUIRE(noted);
+}
+
+TEST_CASE("Manifest: 依存関係が計算グラフを反映する", "[unit][manifest]") {
+  TempDir tmp("manifest-deps");
+  const std::string p = tmp.file("model.gguf");
+  write_test_gguf(p, gemma_like_specs());
+
+  const GgufFile f = read_gguf(p);
+  const Manifest m = build_manifest(f);
+
+  std::unordered_map<std::string, const ManifestEntry*> by_name;
+  for (const auto& e : m.entries) by_name[e.name] = &e;
+
+  const ManifestEntry* q = by_name.at("blk.0.attn_q.weight");
+  const ManifestEntry* k = by_name.at("blk.0.attn_k.weight");
+  const ManifestEntry* norm = by_name.at("blk.0.attn_norm.weight");
+  const ManifestEntry* out = by_name.at("blk.0.attn_output.weight");
+
+  // q/k は attn_norm に依存する
+  REQUIRE(std::find(q->depends_on.begin(), q->depends_on.end(),
+                    norm->exec_order) != q->depends_on.end());
+  REQUIRE(std::find(k->depends_on.begin(), k->depends_on.end(),
+                    norm->exec_order) != k->depends_on.end());
+
+  // attn_output は q/k/v に依存する（3 つ）
+  REQUIRE(out->depends_on.size() == 3);
+
+  // q/k/v は同じ並列グループ（順序制約が無い）
+  REQUIRE(q->parallel_group == k->parallel_group);
+  REQUIRE(q->parallel_group != 0);
+  // norm は単独
+  REQUIRE(norm->parallel_group == 0);
+
+  // 依存先は必ず自分より前の実行順
+  for (const auto& e : m.entries) {
+    for (const u64 d : e.depends_on) {
+      INFO(e.name << " depends on " << d << " but is at " << e.exec_order);
+      REQUIRE(d < e.exec_order);
+    }
+  }
 }

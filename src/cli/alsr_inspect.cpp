@@ -1,6 +1,7 @@
 // alsr-inspect — GGUF 解析と実行順序マニフェスト生成 (FR-01 / FR-02)。
 //
 // モデルファイルは読み取り専用でしか触らない (NFR-03)。
+#include <chrono>
 #include <iostream>
 #include <sstream>
 
@@ -8,6 +9,7 @@
 #include "alsr/env.hpp"
 #include "alsr/gguf.hpp"
 #include "alsr/ggml_types.hpp"
+#include "alsr/host_store.hpp"
 #include "alsr/manifest.hpp"
 #include "cli_common.hpp"
 
@@ -33,6 +35,12 @@ void usage() {
   --resident-mib <n>    常駐候補とみなすテンソルサイズ上限 [MiB] (既定 1)
   --vram-gb <list>      VRAM 常駐率テーブルに使う「重みに割ける VRAM」[GB]、
                         カンマ区切り。省略時は総重み量の 0/25/50/75/90% を使う
+  --extrapolate         31B/70B/120B/405B 級への規模外挿を出す (§4.1-6)
+  --base-params-b <n>   外挿の基準となるパラメータ数 [B]。--extrapolate に必須。
+                        GGUF から正確に取れないので明示させる（推測しない）
+  --target-tok-s <n>    外挿で「必要帯域」を出すときの目標速度 (既定 5)
+  --preload             解析前にモデルを RAM へ事前ロードする (FR-04 の確認用)
+  --preload-mode <m>    mmap | read (既定 mmap)
   --quiet               標準出力のサマリーを抑制する
 
 注意:
@@ -70,12 +78,30 @@ int main(int argc, char** argv) {
     }
     args.reject_unknown({"model", "ollama", "manifest-out", "gguf-out", "env-out",
                          "sha256", "bandwidths", "resident-mib", "vram-gb",
-                         "quiet", "help"});
+                         "extrapolate", "base-params-b", "target-tok-s",
+                         "preload", "preload-mode", "quiet", "help"});
 
     const std::string path = cli::resolve_model_path(args);
     const bool quiet = args.flag("quiet");
 
     if (!quiet) std::cout << "model: " << path << "\n";
+
+    // FR-04: 事前ロード。効果の有無ではなく「できること」の確認。
+    if (args.flag("preload")) {
+      const HostStoreMode pm =
+          host_store_mode_from_string(args.get("preload-mode", "mmap"));
+      HostStore store(path, pm);
+      const auto t0 = std::chrono::steady_clock::now();
+      const Bytes n = store.preload();
+      const double sec =
+          std::chrono::duration<double>(std::chrono::steady_clock::now() - t0)
+              .count();
+      if (!quiet) {
+        std::cout << "preload (" << to_string(pm) << "): " << n << " bytes in "
+                  << sec << " s = " << (static_cast<double>(n) / sec / 1e9)
+                  << " GB/s\n";
+      }
+    }
 
     const GgufFile gguf = read_gguf(path);
     const Bytes resident_threshold = args.get_u64("resident-mib", 1) * MiB;
@@ -133,11 +159,11 @@ int main(int argc, char** argv) {
       std::cout << "  resident candidate bytes : "
                 << manifest.resident_candidate_bytes << " ("
                 << human_bytes(manifest.resident_candidate_bytes) << ")\n";
-      std::cout << "  S_stream lower           : " << manifest.per_token_bytes_lower
-                << " (" << human_bytes(manifest.per_token_bytes_lower)
+      std::cout << "  S_stream lower           : " << manifest.per_token_demand_lower
+                << " (" << human_bytes(manifest.per_token_demand_lower)
                 << ") / token\n";
-      std::cout << "  S_stream upper           : " << manifest.per_token_bytes_upper
-                << " (" << human_bytes(manifest.per_token_bytes_upper)
+      std::cout << "  S_stream upper           : " << manifest.per_token_demand_upper
+                << " (" << human_bytes(manifest.per_token_demand_upper)
                 << ") / token\n";
       std::cout << "  separate output.weight   : "
                 << (manifest.has_separate_output_tensor ? "yes" : "no (tied embedding の可能性)")
@@ -172,7 +198,7 @@ int main(int argc, char** argv) {
     } else {
       for (const double frac : {0.0, 0.25, 0.50, 0.75, 0.90}) {
         resident_list.push_back(static_cast<Bytes>(
-            frac * static_cast<double>(manifest.per_token_bytes_upper)));
+            frac * static_cast<double>(manifest.per_token_demand_upper)));
       }
     }
     const json::Value residency =
@@ -206,6 +232,66 @@ int main(int argc, char** argv) {
                    "     効くのはバイト数だけ。選択方針が効くのは Batch>1・投機・MoE から。\n";
     }
 
+    // --- 規模外挿 (§4.1-6 / §11 Phase 6) ---------------------------------
+    json::Value extrapolation = json::Value::make_object();
+    if (args.flag("extrapolate")) {
+      if (!args.has("base-params-b")) {
+        fail(ErrorKind::Invalid,
+             "--extrapolate には --base-params-b が必要。GGUF からパラメータ数を"
+             "推測しない（設計書 §20 の方針）");
+      }
+      const double base_b = args.get_double("base-params-b", 0.0);
+      const double target = args.get_double("target-tok-s", 5.0);
+      // 設計書 §11 Phase 6 の順序。resident は RTX 3060 の 12GB から
+      // KV/アクティベーション/コンテキスト分を引いた 10GB を既定とする。
+      const Bytes kRtx3060WeightBudget = 10'000'000'000ull;
+      const std::vector<ExtrapolationTarget> targets = {
+          {"12B (基準)", 12.0, 0.0, kRtx3060WeightBudget},
+          {"31B", 31.0, 0.0, kRtx3060WeightBudget},
+          {"70B", 70.0, 0.0, kRtx3060WeightBudget},
+          {"120B (Dense 換算)", 120.0, 0.0, kRtx3060WeightBudget},
+          {"405B", 405.0, 0.0, kRtx3060WeightBudget},
+      };
+      extrapolation =
+          extrapolate_table(manifest, base_b, targets, bw, target);
+
+      if (!quiet) {
+        std::cout << "\n=== 規模外挿 (§4.1-6 / §11 Phase 6) ===\n";
+        std::cout << "  基準: " << base_b << "B, "
+                  << extrapolation.at("base_bytes_per_param").as_real()
+                  << " byte/param\n";
+        std::cout << "  常駐: " << (kRtx3060WeightBudget / 1e9)
+                  << " GB (RTX 3060 12GB - KV/活性/コンテキスト分の想定)\n";
+        std::cout << "  目標: " << target << " token/s\n\n";
+        std::cout << "  規模                需要[GB]   S_stream[GB]   "
+                     "目標に必要な帯域[GB/s]   T_max@25GB/s\n";
+        for (const json::Value& r : extrapolation.at("rows").as_array()) {
+          const auto& tm = r.at("t_max").as_array();
+          double t25 = 0.0;
+          bool has25 = false;
+          for (const json::Value& e : tm) {
+            if (e.at("bandwidth_gb_per_s").as_real() == 25.0 &&
+                !e.at("t_max_token_per_s").is_null()) {
+              t25 = e.at("t_max_token_per_s").as_real();
+              has25 = true;
+            }
+          }
+          char line[256];
+          std::snprintf(line, sizeof line,
+                        "  %-18s %8.1f   %12.1f   %20.1f   %12s\n",
+                        r.at("name").as_string().c_str(),
+                        r.at("per_token_demand_bytes").as_real() / 1e9,
+                        r.at("s_stream_bytes").as_real() / 1e9,
+                        r.at("required_bandwidth_gb_per_s_for_target").as_real(),
+                        has25 ? (std::to_string(t25).substr(0, 6)).c_str()
+                              : "全常駐");
+          std::cout << line;
+        }
+        std::cout << "\n  ※ 線形外挿。同一量子形式・同一アーキ族が前提。"
+                     "MoE には適用しない（§2.5）。\n";
+      }
+    }
+
     // --- 出力 -----------------------------------------------------------
     if (args.has("gguf-out")) {
       const std::string p = args.get("gguf-out");
@@ -218,6 +304,7 @@ int main(int argc, char** argv) {
       json::Value mj = to_json(manifest);
       mj.set("bandwidth_ceiling", ceiling);
       mj.set("residency", residency);
+      if (args.flag("extrapolate")) mj.set("extrapolation", extrapolation);
       mj.set("gguf_layout", to_json(gguf).at("layout"));
       const std::string p = args.get("manifest-out");
       std::ofstream out(p, std::ios::trunc);

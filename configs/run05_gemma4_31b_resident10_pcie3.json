@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "Run 05 — Run 04 と同じ 31B / 同じ常駐率を PCIe 3.0 x16 相当 (12 GB/s) で流す。",
+    "適応 Scheduler を有効にする。実 plan なので Chunk サイズは動かせず、",
+    "先読み距離のみが制御対象になる（sim が自動で抑制し理由をログに残す）。",
+    "",
+    "PCIe 3.0 と 4.0 で ALSR の成立領域がどれだけ変わるかを見るための対。"
+  ],
+  "label": "run05-31b-resident10-pcie3",
+  "seed": 20260802,
+  "source": {
+    "plan_path": "results/plan_gemma4_31b_256mib.json",
+    "model_path": "",
+    "host_store_mode": "mmap"
+  },
+  "ring": {
+    "ring_depth": 4,
+    "prefetch_depth": 3
+  },
+  "scheduler": {
+    "type": "adaptive",
+    "stats_window": 8,
+    "adaptive_initial_chunk_size": 268435456,
+    "adaptive_initial_prefetch_depth": 3,
+    "adaptive_min_prefetch_depth": 1,
+    "adaptive_max_prefetch_depth": 4,
+    "adaptive_min_chunk_size": 16777216,
+    "adaptive_max_chunk_size": 268435456,
+    "adaptive_min_interval_chunks": 4,
+    "adaptive_starvation_wait_ratio": 0.02,
+    "adaptive_grow_ratio": 0.5,
+    "adaptive_pressure_ratio": 0.9
+  },
+  "backend": {
+    "h2d": {
+      "gb_per_s": 12.0,
+      "fixed_latency_s": 2e-05,
+      "jitter_fraction": 0.05
+    },
+    "prepare": {
+      "gb_per_s": 100.0,
+      "fixed_latency_s": 5e-06,
+      "jitter_fraction": 0.02
+    },
+    "consume_bytes_per_s": 300000000000,
+    "consume_jitter_fraction": 0.02,
+    "device_memory_bytes": 12884901888,
+    "pinned_limit_bytes": 2147483648,
+    "verify_checksums": true
+  },
+  "run": {
+    "repeat_passes": 1,
+    "resident_bytes": 10000000000,
+    "exclude_non_per_token_chunks": true,
+    "per_token_bytes": 8654198000,
+    "materialize_data": true
+  }
+}

@@ -22,6 +22,7 @@ Bytes split_granule(const GgufTensorInfo& t, Bytes alignment) {
 struct SortedTensor {
   const GgufTensorInfo* info = nullptr;
   u64  exec_order = 0;
+  bool per_token = false;
 };
 
 /// 切ってよい位置（絶対オフセット）を全部集める。
@@ -87,7 +88,9 @@ void attach_tensors(const std::vector<SortedTensor>& ts, Chunk& c) {
     ref.bytes            = hi - lo;
     ref.partial          = (ref.bytes != t.nbytes);
     ref.exec_order       = st.exec_order;
+    ref.per_token        = st.per_token;
     c.tensor_bytes += ref.bytes;
+    if (ref.per_token) c.per_token_bytes += ref.bytes;
 
     if (first) {
       c.first_exec_order = ref.exec_order;
@@ -211,17 +214,22 @@ ChunkPlan build_plan(const GgufFile& f, const Manifest& m, const PlanOptions& op
   plan.data_start   = f.data_start;
   plan.file_size    = f.file_size;
 
-  // exec_order をテンソル添字から引けるようにする
-  std::vector<u64> exec_of_tensor(f.tensors.size(), 0);
+  // exec_order と per_token 判定をテンソル添字から引けるようにする
+  std::vector<u64>  exec_of_tensor(f.tensors.size(), 0);
+  std::vector<char> per_token_of_tensor(f.tensors.size(), 0);
   for (const auto& e : m.entries) {
     if (e.tensor_index < exec_of_tensor.size()) {
       exec_of_tensor[e.tensor_index] = e.exec_order;
+      per_token_of_tensor[e.tensor_index] = e.per_token_full_read ? 1 : 0;
     }
   }
 
   std::vector<SortedTensor> ts;
   ts.reserve(f.tensors.size());
-  for (const auto& t : f.tensors) ts.push_back({&t, exec_of_tensor[t.file_index]});
+  for (const auto& t : f.tensors) {
+    ts.push_back({&t, exec_of_tensor[t.file_index],
+                  per_token_of_tensor[t.file_index] != 0});
+  }
   std::sort(ts.begin(), ts.end(), [](const SortedTensor& a, const SortedTensor& b) {
     if (a.info->abs_offset != b.info->abs_offset) {
       return a.info->abs_offset < b.info->abs_offset;
@@ -261,9 +269,14 @@ ChunkPlan build_plan(const GgufFile& f, const Manifest& m, const PlanOptions& op
   }
 
   for (const Chunk& c : plan.chunks) {
-    plan.covered_bytes       += c.bytes;
-    plan.tensor_bytes_total  += c.tensor_bytes;
-    plan.padding_bytes_total += c.padding_bytes;
+    plan.covered_bytes         += c.bytes;
+    plan.tensor_bytes_total    += c.tensor_bytes;
+    plan.padding_bytes_total   += c.padding_bytes;
+    plan.per_token_bytes_total += c.per_token_bytes;
+    if (!c.is_per_token()) {
+      plan.non_per_token_chunk_bytes += c.bytes;
+      ++plan.non_per_token_chunk_count;
+    }
   }
 
   // テンソルが複数 Chunk に跨った件数
@@ -399,6 +412,9 @@ json::Value to_json(const ChunkPlan& plan) {
   sum.set("padding_bytes_total", plan.padding_bytes_total);
   sum.set("min_chunk_bytes", plan.min_chunk_bytes());
   sum.set("max_chunk_bytes", plan.max_chunk_bytes());
+  sum.set("per_token_bytes_total", plan.per_token_bytes_total);
+  sum.set("non_per_token_chunk_bytes", plan.non_per_token_chunk_bytes);
+  sum.set("non_per_token_chunk_count", plan.non_per_token_chunk_count);
   sum.set("split_tensor_count", plan.split_tensor_count);
   sum.set("exec_order_inversions", plan.exec_order_inversions);
   sum.set("plan_structure_sha256", plan.plan_structure_sha256);
@@ -412,6 +428,8 @@ json::Value to_json(const ChunkPlan& plan) {
     j.set("bytes", c.bytes);
     j.set("tensor_bytes", c.tensor_bytes);
     j.set("padding_bytes", c.padding_bytes);
+    j.set("per_token_bytes", c.per_token_bytes);
+    j.set("is_per_token", c.is_per_token());
     j.set("first_exec_order", c.first_exec_order);
     j.set("last_exec_order", c.last_exec_order);
     j.set("checksum_computed", c.checksum_computed);
@@ -426,6 +444,7 @@ json::Value to_json(const ChunkPlan& plan) {
       t.set("bytes", r.bytes);
       t.set("partial", r.partial);
       t.set("exec_order", r.exec_order);
+      t.set("per_token", r.per_token);
       ts.push_back(std::move(t));
     }
     j.set("tensors", std::move(ts));
@@ -462,6 +481,7 @@ ChunkPlan plan_from_json(const json::Value& v) {
     c.bytes            = static_cast<Bytes>(cj.at("bytes").as_int());
     c.tensor_bytes     = static_cast<Bytes>(cj.get_int("tensor_bytes", 0));
     c.padding_bytes    = static_cast<Bytes>(cj.get_int("padding_bytes", 0));
+    c.per_token_bytes  = static_cast<Bytes>(cj.get_int("per_token_bytes", 0));
     c.first_exec_order = static_cast<u64>(cj.get_int("first_exec_order", 0));
     c.last_exec_order  = static_cast<u64>(cj.get_int("last_exec_order", 0));
     c.checksum_computed = cj.get_bool("checksum_computed", false);
@@ -475,13 +495,19 @@ ChunkPlan plan_from_json(const json::Value& v) {
         r.offset_in_tensor = static_cast<Bytes>(tj.get_int("offset_in_tensor", 0));
         r.bytes            = static_cast<Bytes>(tj.get_int("bytes", 0));
         r.partial          = tj.get_bool("partial", false);
+        r.per_token        = tj.get_bool("per_token", false);
         r.exec_order       = static_cast<u64>(tj.get_int("exec_order", 0));
         c.tensors.push_back(std::move(r));
       }
     }
-    p.covered_bytes       += c.bytes;
-    p.tensor_bytes_total  += c.tensor_bytes;
-    p.padding_bytes_total += c.padding_bytes;
+    p.covered_bytes         += c.bytes;
+    p.tensor_bytes_total    += c.tensor_bytes;
+    p.padding_bytes_total   += c.padding_bytes;
+    p.per_token_bytes_total += c.per_token_bytes;
+    if (!c.is_per_token()) {
+      p.non_per_token_chunk_bytes += c.bytes;
+      ++p.non_per_token_chunk_count;
+    }
     p.chunks.push_back(std::move(c));
   }
 

@@ -120,6 +120,8 @@ struct RunSummary {
   /// 定常状態のストリーミング対象から外した常駐重み（§2.4）
   Bytes resident_bytes = 0;
   std::size_t resident_chunk_count = 0;
+  /// うち「毎トークン読まれない」ため外した分（視覚エンコーダ等）
+  Bytes non_per_token_bytes = 0;
 
   u64 checksum_failures = 0;
   u64 missing_chunks = 0;
@@ -130,6 +132,10 @@ struct RunSummary {
   u64 ring_wrap_arounds = 0;
 
   std::string metrics_sha256;
+  /// 対象モデルの digest。Ollama blob はファイル名自体が SHA-256 なので、
+  /// plan に記録が無い場合は blob パスから取り出す (NFR-02)。
+  std::string model_digest;
+  std::string model_digest_source;
   bool        environment_recorded = false;
   /// 実データを流したか。false の Run は正確性の証拠にならない。
   bool        data_materialized = true;

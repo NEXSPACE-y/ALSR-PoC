@@ -26,6 +26,9 @@ namespace alsr {
 
 struct SchedulerInput {
   u64         chunk_index = 0;
+  /// これから投入できる候補 Chunk の添字（実行順に並んでいる）。
+  /// Scheduler は「次にどれを取るか」をここから選ぶ (FR-06 出力の「次Chunk」)。
+  std::vector<std::size_t> pending_chunk_indices;
   std::size_t queue_depth = 0;        ///< 現在の in-flight スロット数
   std::size_t ring_depth = 0;
   std::size_t free_slots = 0;
@@ -47,6 +50,11 @@ struct SchedulerInput {
 };
 
 struct SchedulerDecision {
+  /// 次に投入する Chunk（pending_chunk_indices の中の値）。
+  /// 候補が空なら kNoChunk。初期版は常に先頭（実行順）を返すが、選択の責務は
+  /// Scheduler にあることを型で表しておく (FR-06)。
+  static constexpr std::size_t kNoChunk = static_cast<std::size_t>(-1);
+  std::size_t next_chunk_index = kNoChunk;
   Bytes       chunk_size = 0;
   std::size_t prefetch_depth = 0;
   int         transfer_priority = 0;  ///< 0=通常, 1=緊急（枯渇時）

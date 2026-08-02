@@ -48,6 +48,9 @@ struct ChunkTensorRef {
   Bytes       bytes = 0;
   bool        partial = false;       ///< テンソルが複数 Chunk に跨るか
   u64         exec_order = 0;
+  /// このテンソルがテキスト生成で毎トークン読まれるか（manifest 由来）。
+  /// 視覚エンコーダ・投影器・埋め込み lookup は false。
+  bool        per_token = false;
 };
 
 struct Chunk {
@@ -58,6 +61,10 @@ struct Chunk {
   bool  checksum_computed = false;
   Bytes tensor_bytes = 0;     ///< うちテンソル実体
   Bytes padding_bytes = 0;    ///< うちアライメント埋め
+  /// うち「毎トークン読まれる」テンソルの実体バイト。
+  /// 0 なら、この Chunk は定常状態のストリーミング対象ではない。
+  Bytes per_token_bytes = 0;
+  [[nodiscard]] bool is_per_token() const noexcept { return per_token_bytes > 0; }
   u64   first_exec_order = 0;
   u64   last_exec_order = 0;
   std::vector<ChunkTensorRef> tensors;
@@ -78,6 +85,11 @@ struct ChunkPlan {
   Bytes covered_bytes = 0;
   Bytes tensor_bytes_total = 0;
   Bytes padding_bytes_total = 0;
+  /// 毎トークン読まれるテンソルの合計（manifest の per_token_demand と一致する）
+  Bytes per_token_bytes_total = 0;
+  /// 毎トークン読まれない Chunk の合計バイト（視覚エンコーダ等）
+  Bytes non_per_token_chunk_bytes = 0;
+  std::size_t non_per_token_chunk_count = 0;
   std::size_t split_tensor_count = 0;
   /// 実行順とファイル順が逆転している箇所の数（逐次先読みの効きやすさの指標）
   std::size_t exec_order_inversions = 0;

@@ -5,7 +5,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
+#include <vector>
 #include <cstring>
 #include <sstream>
 
@@ -67,6 +69,63 @@ HostStore::HostStore(std::string path, HostStoreMode mode, Bytes synthetic_size)
 HostStore::~HostStore() {
   if (map_ != nullptr) ::munmap(map_, map_len_);
   if (fd_ >= 0) ::close(fd_);
+}
+
+Bytes HostStore::preload(Bytes offset, Bytes len) {
+  if (len == 0) {
+    if (offset >= file_size_) return 0;
+    len = file_size_ - offset;
+  }
+  if (offset > file_size_ || len > file_size_ - offset) {
+    std::ostringstream os;
+    os << "preload out of range: offset=" << offset << " len=" << len
+       << " file_size=" << file_size_;
+    fail(ErrorKind::Invalid, os.str());
+  }
+  if (len == 0) return 0;
+
+  switch (mode_) {
+    case HostStoreMode::Synthetic:
+      // 生成なので事前ロードするものが無い。0 を返して黙って成功にしない。
+      return 0;
+
+    case HostStoreMode::Mmap: {
+      if (map_ == nullptr) fail(ErrorKind::State, "mmap region is not available");
+      u8* base = static_cast<u8*>(map_) + offset;
+      // カーネルへ意図を伝えたうえで、実際に触って常駐させる。
+      // madvise だけでは実際に読まれる保証が無い。
+      ::madvise(base, static_cast<std::size_t>(len), MADV_WILLNEED);
+      const std::size_t page = static_cast<std::size_t>(::getpagesize());
+      volatile u8 sink = 0;
+      for (Bytes k = 0; k < len; k += page) {
+        sink = static_cast<volatile u8*>(base)[k];
+      }
+      (void)sink;
+      break;
+    }
+
+    case HostStoreMode::Read: {
+      // 読み捨てでページキャッシュへ載せる。
+      std::vector<u8> scratch(4 * 1024 * 1024);
+      Bytes done = 0;
+      while (done < len) {
+        const Bytes take = std::min<Bytes>(scratch.size(), len - done);
+        const ssize_t got = ::pread(fd_, scratch.data(),
+                                    static_cast<std::size_t>(take),
+                                    static_cast<off_t>(offset + done));
+        if (got < 0) {
+          if (errno == EINTR) continue;
+          fail(ErrorKind::Io, "pread failed during preload on " + path_ + ": " +
+                                  std::strerror(errno));
+        }
+        if (got == 0) break;
+        done += static_cast<Bytes>(got);
+      }
+      break;
+    }
+  }
+  bytes_preloaded_ += len;
+  return len;
 }
 
 void HostStore::read_into(Bytes offset, Bytes len, u8* dst) {

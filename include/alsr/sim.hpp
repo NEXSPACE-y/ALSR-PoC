@@ -75,6 +75,10 @@ struct SimConfig {
   /// Batch=1 の Dense では各重みが 1 トークンにつき 1 回しか使われないので、
   /// 「どれを常駐させるか」は総転送量に影響しない。効くのはバイト数だけ。
   Bytes  resident_bytes = 0;
+  /// 「毎トークン読まれない」Chunk（視覚エンコーダ・投影器など）を定常状態の
+  /// ストリーミング対象から外すか。テキスト生成の token/s を測るなら true。
+  /// 画像入力を含む経路を測るなら false にして全部流す。
+  bool   exclude_non_per_token_chunks = true;
   /// この Chunk 数を処理した時点で cancel_all() する。0 で無効。
   u64    cancel_at_chunk = 0;
   /// 実バイトを Host Store から slot へ流すか。
