@@ -62,8 +62,9 @@
     "verify_checksums": true
   },
   "run": {
+    "_per_token_bytes_note": "合成データなので実モデルの S_stream で割った token/s は無意味。0 にして導出させない。",
     "repeat_passes": 1,
-    "per_token_bytes": 7365558464,
+    "per_token_bytes": 0,
     "materialize_data": true
   }
 }
