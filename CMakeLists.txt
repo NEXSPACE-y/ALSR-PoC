@@ -22,6 +22,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(ALSR_BUILD_TESTS   "Build unit/integration/stress tests" ON)
 option(ALSR_WERROR        "Treat warnings as errors"            ON)
 option(ALSR_ENABLE_HW_CRC "Use hardware CRC32C when available"  ON)
+option(ALSR_ENABLE_M1_LLAMA_TRACE
+       "Build the M1 real llama.cpp graph trace tool" OFF)
+option(ALSR_ENABLE_M2_EXECUTOR
+       "Build the M2 M5 real Executor with the ALSR scheduler hook" OFF)
+set(ALSR_LLAMA_CPP_SOURCE_DIR "" CACHE PATH
+    "Exact b10091 llama.cpp source tree for the M1 trace tool")
+set(ALSR_LLAMA_CPP_PATCH_FILE "" CACHE FILEPATH
+    "Canonical ALSR patch applied to the pinned llama.cpp tree (M2 only)")
 
 # ---------------------------------------------------------------------------
 # コアライブラリ
@@ -36,9 +44,11 @@ add_library(alsr_core STATIC
   src/inspector/ggml_types.cpp
   src/inspector/gguf.cpp
   src/inspector/manifest.cpp
+  src/inspector/real_graph_manifest.cpp
   src/planner/planner.cpp
   src/buffer/host_store.cpp
   src/buffer/ring_buffer.cpp
+  src/supply/real_supply.cpp
   src/scheduler/scheduler.cpp
   src/sim/bandwidth.cpp
   src/sim/sim.cpp
@@ -90,6 +100,119 @@ foreach(tool inspect plan sim bw)
     endif()
   endif()
 endforeach()
+
+add_executable(alsr-real-manifest src/cli/alsr_real_manifest.cpp)
+target_link_libraries(alsr-real-manifest PRIVATE alsr_core)
+if(NOT MSVC)
+  target_compile_options(alsr-real-manifest PRIVATE -Wall -Wextra -Wpedantic)
+  if(ALSR_WERROR)
+    target_compile_options(alsr-real-manifest PRIVATE -Werror)
+  endif()
+endif()
+
+if(ALSR_ENABLE_M1_LLAMA_TRACE OR ALSR_ENABLE_M2_EXECUTOR)
+  if(NOT IS_DIRECTORY "${ALSR_LLAMA_CPP_SOURCE_DIR}")
+    message(FATAL_ERROR
+      "ALSR_ENABLE_M1_LLAMA_TRACE requires ALSR_LLAMA_CPP_SOURCE_DIR")
+  endif()
+  execute_process(
+    COMMAND git -C "${ALSR_LLAMA_CPP_SOURCE_DIR}" rev-parse HEAD
+    OUTPUT_VARIABLE ALSR_LLAMA_CPP_ACTUAL_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE ALSR_LLAMA_CPP_GIT_RESULT)
+  set(ALSR_LLAMA_CPP_REQUIRED_COMMIT
+      "b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45")
+  if(NOT ALSR_LLAMA_CPP_GIT_RESULT EQUAL 0 OR
+     NOT ALSR_LLAMA_CPP_ACTUAL_COMMIT STREQUAL ALSR_LLAMA_CPP_REQUIRED_COMMIT)
+    message(FATAL_ERROR
+      "M1 requires llama.cpp ${ALSR_LLAMA_CPP_REQUIRED_COMMIT}; got ${ALSR_LLAMA_CPP_ACTUAL_COMMIT}")
+  endif()
+
+  set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
+  set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+  set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+  set(LLAMA_BUILD_APP OFF CACHE BOOL "" FORCE)
+  if(ALSR_ENABLE_M2_EXECUTOR)
+    if(NOT EXISTS "${ALSR_LLAMA_CPP_PATCH_FILE}")
+      message(FATAL_ERROR
+        "M2 requires ALSR_LLAMA_CPP_PATCH_FILE")
+    endif()
+    file(SHA256 "${ALSR_LLAMA_CPP_PATCH_FILE}"
+         ALSR_LLAMA_CPP_PATCH_SHA256)
+    set(ALSR_LLAMA_CPP_CURRENT_PATCH
+        "${CMAKE_BINARY_DIR}/llama.cpp-current.patch")
+    execute_process(
+      COMMAND git -C "${ALSR_LLAMA_CPP_SOURCE_DIR}" diff HEAD --binary
+      OUTPUT_FILE "${ALSR_LLAMA_CPP_CURRENT_PATCH}"
+      RESULT_VARIABLE ALSR_LLAMA_CPP_DIFF_RESULT)
+    if(NOT ALSR_LLAMA_CPP_DIFF_RESULT EQUAL 0)
+      message(FATAL_ERROR "could not fingerprint the M2 llama.cpp patch")
+    endif()
+    file(SHA256 "${ALSR_LLAMA_CPP_CURRENT_PATCH}"
+         ALSR_LLAMA_CPP_CURRENT_PATCH_SHA256)
+    execute_process(
+      COMMAND git -C "${ALSR_LLAMA_CPP_SOURCE_DIR}" status
+              --porcelain --untracked-files=all
+      OUTPUT_VARIABLE ALSR_LLAMA_CPP_STATUS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(ALSR_LLAMA_CPP_STATUS MATCHES "(^|\n)\\?\\?")
+      message(FATAL_ERROR
+        "M2 pinned llama.cpp tree contains untracked files")
+    endif()
+    if(NOT ALSR_LLAMA_CPP_CURRENT_PATCH_SHA256 STREQUAL
+           ALSR_LLAMA_CPP_PATCH_SHA256)
+      message(FATAL_ERROR
+        "M2 llama.cpp tree differs from canonical patch: expected ${ALSR_LLAMA_CPP_PATCH_SHA256}, got ${ALSR_LLAMA_CPP_CURRENT_PATCH_SHA256}")
+    endif()
+    # CPU repack creates a second model-sized allocation and bypasses the
+    # host-mmap -> finite Metal split-copy path required by M2.
+    set(GGML_CPU_REPACK OFF CACHE BOOL "" FORCE)
+  endif()
+  add_subdirectory("${ALSR_LLAMA_CPP_SOURCE_DIR}"
+                   "${CMAKE_BINARY_DIR}/_deps/llama.cpp" EXCLUDE_FROM_ALL)
+
+  if(ALSR_ENABLE_M1_LLAMA_TRACE)
+  add_executable(alsr-llama-graph-trace src/cli/alsr_llama_graph_trace.cpp)
+  target_link_libraries(alsr-llama-graph-trace PRIVATE alsr_core llama)
+  target_include_directories(alsr-llama-graph-trace SYSTEM PRIVATE
+    "${ALSR_LLAMA_CPP_SOURCE_DIR}/include"
+    "${ALSR_LLAMA_CPP_SOURCE_DIR}/src"
+    "${ALSR_LLAMA_CPP_SOURCE_DIR}/ggml/include")
+  target_compile_definitions(alsr-llama-graph-trace PRIVATE
+    ALSR_LLAMA_CPP_TAG="b10091"
+    ALSR_LLAMA_CPP_COMMIT="${ALSR_LLAMA_CPP_REQUIRED_COMMIT}")
+  if(NOT MSVC)
+    target_compile_options(alsr-llama-graph-trace PRIVATE
+      -Wall -Wextra -Wpedantic)
+    if(ALSR_WERROR)
+      target_compile_options(alsr-llama-graph-trace PRIVATE -Werror)
+    endif()
+  endif()
+  endif()
+
+  if(ALSR_ENABLE_M2_EXECUTOR)
+    add_executable(alsr-m5-executor src/cli/alsr_m5_executor.cpp)
+    target_link_libraries(alsr-m5-executor PRIVATE alsr_core llama)
+    target_include_directories(alsr-m5-executor SYSTEM PRIVATE
+      "${ALSR_LLAMA_CPP_SOURCE_DIR}/include"
+      "${ALSR_LLAMA_CPP_SOURCE_DIR}/src"
+      "${ALSR_LLAMA_CPP_SOURCE_DIR}/ggml/include")
+    target_compile_definitions(alsr-m5-executor PRIVATE
+      ALSR_LLAMA_CPP_TAG="b10091"
+      ALSR_LLAMA_CPP_COMMIT="${ALSR_LLAMA_CPP_REQUIRED_COMMIT}"
+      ALSR_LLAMA_CPP_PATCH_SHA256="${ALSR_LLAMA_CPP_PATCH_SHA256}"
+      ALSR_M2_CPU_REPACK_DISABLED=1)
+    if(NOT MSVC)
+      target_compile_options(alsr-m5-executor PRIVATE
+        -Wall -Wextra -Wpedantic)
+      if(ALSR_WERROR)
+        target_compile_options(alsr-m5-executor PRIVATE -Werror)
+      endif()
+    endif()
+  endif()
+endif()
 
 # ---------------------------------------------------------------------------
 # テスト

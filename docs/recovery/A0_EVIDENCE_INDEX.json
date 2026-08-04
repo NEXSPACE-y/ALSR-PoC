@@ -1,0 +1,1313 @@
+{
+  "_document": "A0_EVIDENCE_INDEX",
+  "_gate": "A0",
+  "_mission": "ALSR-A0-RECOVERY-AUDIT-01",
+  "_generated_at": "2026-08-02 JST",
+  "_amendments": [
+    {
+      "amendment_mission": "ALSR-A0-REM-01",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / 次 Gate 進行は行っていない。",
+      "changes": [
+        "初版の索引が Git 追跡ファイル 71 件のうち 69 件しか収録していなかった差 2 件を特定し、third_party/.gitkeep と third_party/README.md を追加した。",
+        "除外方針の記述を third_party/ から third_party/_fetch/ へ限定した。",
+        "counts を 148 → 150 / git_tracked 69 → 71 / OTHER 3 → 5 に更新した。",
+        "integrity_checks に、hash 突合が同一 Pack 内で閉じており改変の不在を示すものではない旨の限定を追加した。"
+      ]
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-02",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。",
+      "changes": [
+        "path_migration を追加した（リポジトリ実体パスの移行と、その前後での results/ 連続性）。",
+        "索引 150 件全件の SHA-256 を再計算し、記録値と突合した。"
+      ],
+      "recorded_late_by": "ALSR-A0-REM-03",
+      "note": "本エントリは ALSR-A0-REM-02 の作業時に追記し忘れたものである。他 2 点（A0_CLAIM_LEDGER / A0_METRIC_PROVENANCE）には REM-02 の _amendments が記録されていたため、本ファイルだけが改訂履歴を欠いていた。ALSR-A0-REM-03 で遡って記録した（D-51）。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-03",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / README・KNOWN_LIMITATIONS 修正 / 次 Gate 進行は行っていない。",
+      "trigger": "ALSR-A0-REM-02 が RED 裁定。集計・Git 状態の内部不整合と、パス連続性のスコープ超過表現の是正。",
+      "changes": [
+        "欠落していた ALSR-A0-REM-02 の _amendments エントリを遡って記録した。",
+        "repository ブロックに観測時刻を付し、path が移行後の値であること、working_tree_clean_at_audit_start が A0 初版の監査開始時点の状態であることを明示した。path_migration の git_status_before と矛盾して読めていた。",
+        "path_migration.proven_range から『パス移行によって results/ の内容が失われた・混ざったことは起きていない』を削除した。突合が示すのは記録値との一致のみであり、移行という事象そのものは観測していない（D-44 と同型のスコープ超過の再発 / D-52）。"
+      ],
+      "values_changed": "無し。ファイルの索引内容・SHA-256・件数は変更していない。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-04",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード / テスト / ベンチマーク / results/ / README.md / KNOWN_LIMITATIONS.md は変更・実行していない。",
+      "trigger": "ALSR-A0-REM-03 が RED 裁定。残存指摘 5 件（D-53〜D-57）の是正。",
+      "changes": [
+        "path_migration.unproven_range の「iCloud の evict / re-materialize は 18:18 以降についてのみ否定できる」を訂正した。2 時点の hash 一致からは、その間の変更・復元の不在を 18:18 以降についても証明できない（D-54）。",
+        "_time_scope_note を追加し、『18:18 以降なら証明できる』という時間境界が存在しないことを明記した。",
+        "tracked_file_reconciliation.residual_note を訂正した。追跡外 79 件はすべて results/ 配下であり、索引対象外の .claude/settings.local.json は含まれない（D-55）。",
+        "results_tracking_breakdown を追加した。results/ 索引 80 件 = 追跡 1（.gitkeep）+ 非追跡 79（D-55）。",
+        "path_migration.residual_risk の「results/ 80 件は現在も非追跡」という誤記を訂正した（D-55）。"
+      ],
+      "values_changed": "無し。索引内容・SHA-256・件数は変更していない。訂正したのは内訳の記述である。"
+    }
+  ],
+  "_note": [
+    "Rev.02 §8 Gate A0 成果物。既存成果物の所在とハッシュを固定するための索引。",
+    "ハッシュ計算のみを行い、いかなるファイルも変更していない。",
+    "build/ third_party/_fetch/ .git/ __pycache__/ .claude/ は索引対象外（生成物・取得物）。",
+    "third_party/ 直下の追跡ファイル 2 件（.gitkeep / README.md）は取得物ではないため索引対象である。",
+    "初版はこれを third_party/ の一括除外に巻き込んで落としており、ALSR-A0-REM-01 で追加した。",
+    "git_tracked=false は Git 追跡外を意味する。ユーザー宣言により本リポジトリは",
+    "Git を正式運用しておらず、results/ は .gitignore により意図的に非追跡である。"
+  ],
+  "repository": {
+    "path": "/Users/yoshiki/Desktop/ALSR-PoC",
+    "_path_note": "移行後の実体パス。本索引が生成された 2026-08-02 18:18 JST 時点の実体は iCloud 同期配下（path_migration.path_before）にあった。当時記録したのはユーザー環境上の論理パス（~/Desktop）であり、値は移行後と一致するが根拠は一致していない（D-45 / A0_INVENTORY §2.1）。",
+    "branch": "main",
+    "head": "0ce74bda24843ead02ec2ee992febd65ab8882ae",
+    "remote": null,
+    "working_tree_clean_at_audit_start": true,
+    "_working_tree_note": "ここでいう『監査開始時』は ALSR-A0-RECOVERY-AUDIT-01 の開始時点（docs/recovery/ 生成前）である。以後 docs/recovery/ が未追跡ファイルとして存在するため、REM-01 以降の git status は一貫して '?? docs/recovery/' であり、path_migration.identity_checks_across_migration の git_status_before / after と矛盾しない。ALSR-A0-REM-03 で時点を明示した。"
+  },
+  "counts": {
+    "total_files_indexed": 150,
+    "git_tracked": 71,
+    "git_untracked_or_ignored": 79,
+    "by_category": {
+      "OTHER": 5,
+      "SOURCE": 48,
+      "CONFIG": 6,
+      "DOCUMENT": 5,
+      "EVIDENCE": 80,
+      "TOOLING": 6
+    }
+  },
+  "tracked_file_reconciliation": {
+    "_note": "A0_INVENTORY §2 が記録する追跡ファイル数（71）と、本索引の git_tracked 件数の突合。",
+    "git_ls_files_count": 71,
+    "indexed_git_tracked_count_initial": 69,
+    "difference_initial": 2,
+    "missing_files_identified": [
+      {
+        "path": "third_party/.gitkeep",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cause": "初版の索引除外規則が third_party/ をディレクトリごと対象外にしていたため。除外の意図は FetchContent 取得物（third_party/_fetch/ 配下の Catch2 v3.15.3）であり、直下の追跡ファイルは対象外にすべきではなかった。"
+      },
+      {
+        "path": "third_party/README.md",
+        "bytes": 690,
+        "sha256": "533e91012779256a1a1f8a479bf3155a301d83589d602a2320a8c96004d3c3cc",
+        "cause": "同上。"
+      }
+    ],
+    "indexed_git_tracked_count_after": 71,
+    "difference_after": 0,
+    "verification": "git ls-files の 71 件と本索引の git_tracked=true の 71 件は、集合として完全に一致する（片側のみに存在するパスは 0 件）。",
+    "resolved_by": "ALSR-A0-REM-01",
+    "residual_note": "本突合が示すのは索引の網羅性のみである。索引 150 件のうち追跡外は 79 件で、その 79 件は **すべて results/ 配下** である（results/ 索引 80 件 − 追跡されている results/.gitkeep 1 件）。これらは Git のアンカーを持たず、ディスク上にのみ存在する状態が続いている（A0_INVENTORY §3.2 / U-07）。初版は追跡外 79 件に .claude/settings.local.json を含めて記述していたが、同ファイルは索引対象外であり（_note の除外規則）、79 件には入らない。ALSR-A0-REM-04 で訂正した（D-55）。",
+    "results_tracking_breakdown": {
+      "_note": "ALSR-A0-REM-04（D-55）。results/ 配下の Git 追跡状況の内訳。",
+      "indexed_results_files": 80,
+      "git_tracked": 1,
+      "git_tracked_paths": [
+        "results/.gitkeep"
+      ],
+      "git_untracked_or_ignored": 79,
+      "gitignore_rule": ".gitignore:22 'results/*' で除外し、:23 '!results/.gitkeep' で .gitkeep のみ除外解除。",
+      "note": "Evidence Pack を明示的に git add -f する運用が想定されているが、Pack 本体は 1 件も追跡下に無い。追跡されている 1 件はディレクトリ保持用の空ファイルであり、証拠ではない。"
+    }
+  },
+  "integrity_checks": {
+    "_note": "summary.json に記録された metrics.jsonl の SHA-256 と、実ファイルの再計算値の突合。",
+    "_scope_limit": [
+      "本突合が示すのは、現在の Pack 内で内部 hash 不一致が 0 件であることに限られる。",
+      "記録値（summary.json）と対象ファイル（metrics.jsonl）はどちらも同じ Pack の中にあり、",
+      "外部アンカー（remote / 署名 / 独立タイムスタンプ / 第三者による保管）が存在しない。",
+      "両者が揃って差し替えられた場合、この突合では検出できない。",
+      "results/ は .gitignore により非追跡であるため、Git の履歴もアンカーにならない。",
+      "したがって本結果から『事後に書き換えられていない』を導くことはできない。",
+      "status: INTERNAL_HASH_CONSISTENT_ONLY（A0_CLAIM_LEDGER 参照）。ALSR-A0-REM-01 で限定を明記した。"
+    ],
+    "results": [
+      {
+        "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+        "metrics_sha256_recorded_in_summary": "a62fa9d11cd34aa608f7bb6491f604879c0533f0931a81dfc0e64afdbb374115",
+        "metrics_sha256_recomputed": "a62fa9d11cd34aa608f7bb6491f604879c0533f0931a81dfc0e64afdbb374115",
+        "match": true
+      },
+      {
+        "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+        "metrics_sha256_recorded_in_summary": "0b39d0032879c67e5dd1895cfb2649ed76b22b80dc550dd6285ce2ac2a8c5bc1",
+        "metrics_sha256_recomputed": "0b39d0032879c67e5dd1895cfb2649ed76b22b80dc550dd6285ce2ac2a8c5bc1",
+        "match": true
+      },
+      {
+        "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+        "metrics_sha256_recorded_in_summary": "a47204e89010b2fa9540e8553f95cfdb1b4f6c6650d2ab9258937ba737c0024a",
+        "metrics_sha256_recomputed": "a47204e89010b2fa9540e8553f95cfdb1b4f6c6650d2ab9258937ba737c0024a",
+        "match": true
+      },
+      {
+        "run_id": "run04-31b-resident10-pcie4-596595facb61",
+        "metrics_sha256_recorded_in_summary": "b9a9349732a677ed58fd7cf4332bda9439d752c91aa0d8f0301ebb752669c4fa",
+        "metrics_sha256_recomputed": "b9a9349732a677ed58fd7cf4332bda9439d752c91aa0d8f0301ebb752669c4fa",
+        "match": true
+      },
+      {
+        "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+        "metrics_sha256_recorded_in_summary": "9c35126d960e80899e8f8d28d0fa3071ed3d97a42d40b0351b3c84e75d574328",
+        "metrics_sha256_recomputed": "9c35126d960e80899e8f8d28d0fa3071ed3d97a42d40b0351b3c84e75d574328",
+        "match": true
+      },
+      {
+        "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+        "metrics_sha256_recorded_in_summary": "87301a213a9ccb751eaec62ade3e12c56ce1aa29b52eb965dff487afa22382a6",
+        "metrics_sha256_recomputed": "87301a213a9ccb751eaec62ade3e12c56ce1aa29b52eb965dff487afa22382a6",
+        "match": true
+      }
+    ],
+    "failures": 0
+  },
+  "files": [
+    {
+      "path": ".gitignore",
+      "category": "OTHER",
+      "bytes": 568,
+      "sha256": "b67d44a04bd0f100de1fc67cb35ddbccd7ee3e82d05bd8ddcef7c47a9af72ddf",
+      "git_tracked": true
+    },
+    {
+      "path": "CMakeLists.txt",
+      "category": "SOURCE",
+      "bytes": 4485,
+      "sha256": "dbeb02a7015edde31795a8a4d71b79b1a978e94976a7023bfefa36d39b1cfb72",
+      "git_tracked": true
+    },
+    {
+      "path": "LICENSE",
+      "category": "OTHER",
+      "bytes": 897,
+      "sha256": "8a3c6a42927e57e4982d0df57ea0232dff74158fa11991b197ef57da2de30c58",
+      "git_tracked": true
+    },
+    {
+      "path": "README.md",
+      "category": "OTHER",
+      "bytes": 10649,
+      "sha256": "ad743a8f1bfb2963892b72cdb1ec2bf2d12d34824bbbb123c89ac542dc0163c6",
+      "git_tracked": true
+    },
+    {
+      "path": "backends/cuda/README.md",
+      "category": "SOURCE",
+      "bytes": 3760,
+      "sha256": "c4406fed2ae5008ac67d806097502867230fd26f79547f3604a7790822f92b1b",
+      "git_tracked": true
+    },
+    {
+      "path": "backends/simulator/sim_transfer_backend.cpp",
+      "category": "SOURCE",
+      "bytes": 3684,
+      "sha256": "0944f67e8f351f7826240ec5e463f4b2b8fd1c38a944da350c3c4d283514b089",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run01_gemma4_fixed_pcie4.json",
+      "category": "CONFIG",
+      "bytes": 1682,
+      "sha256": "a2b2ea0499cdc2930b5a17fb83149082ccd91d92e78835770fc2cf2ea9277c76",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run02_gemma4_adaptive_pcie3.json",
+      "category": "CONFIG",
+      "bytes": 1937,
+      "sha256": "223a17eba5440fe050922e0ff74921685d2d84e81bae5737a03293fbd55a5d86",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run03_synthetic_adaptive_healthy.json",
+      "category": "CONFIG",
+      "bytes": 2535,
+      "sha256": "f7fc00744e07ccfe4f20427040d195488b3d66958e53b8f4ad94bfc21c28bddc",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run04_gemma4_31b_resident10_pcie4.json",
+      "category": "CONFIG",
+      "bytes": 2292,
+      "sha256": "ce7f3cd6523533c1ca87e0932d180445930b074e05be9c32922932cd661b274a",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run05_gemma4_31b_resident10_pcie3.json",
+      "category": "CONFIG",
+      "bytes": 1761,
+      "sha256": "f85d6fcf97804f014129a71d6028cf4865fd74c162bd2d9a9dcf4acaad0e48d9",
+      "git_tracked": true
+    },
+    {
+      "path": "configs/run06_gemma4_31b_resident0_pcie4.json",
+      "category": "CONFIG",
+      "bytes": 1514,
+      "sha256": "12450e404950e10f45f5f7f45846e0899932356df87036c1553954d7da4575a2",
+      "git_tracked": true
+    },
+    {
+      "path": "docs/ALSR_REQ_DESIGN.md",
+      "category": "DOCUMENT",
+      "bytes": 38184,
+      "sha256": "aaffe75ac00812777f2941ceb7c43b37c4771ad926630c87d85c9c48f753651d",
+      "git_tracked": true
+    },
+    {
+      "path": "docs/CONFORMANCE.md",
+      "category": "DOCUMENT",
+      "bytes": 16985,
+      "sha256": "dcb9f7681b371326205bdb626b4821f4f9af5470f5d819b32a6e17ba73a4379f",
+      "git_tracked": true
+    },
+    {
+      "path": "docs/DECISIONS.md",
+      "category": "DOCUMENT",
+      "bytes": 26204,
+      "sha256": "9e8730967b706aebb27d6320e6572a90516b6d074aa248d71b524e04afea298b",
+      "git_tracked": true
+    },
+    {
+      "path": "docs/EXPERIMENTS.md",
+      "category": "DOCUMENT",
+      "bytes": 19158,
+      "sha256": "4a6964fc2a788b522a685aac079dddc1c8595e8db94bfc8aa3e93b82682b2d9a",
+      "git_tracked": true
+    },
+    {
+      "path": "docs/KNOWN_LIMITATIONS.md",
+      "category": "DOCUMENT",
+      "bytes": 11900,
+      "sha256": "0272d6b5e3a66912d6cfbeecba5853d3c3bd5c41659a46594994270e8a26b162",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/bandwidth.hpp",
+      "category": "SOURCE",
+      "bytes": 2911,
+      "sha256": "ff4633973a17d7528070e047b4258b98748b53ce77df77d0c5c5e855ec42d7ea",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/checksum.hpp",
+      "category": "SOURCE",
+      "bytes": 2586,
+      "sha256": "dec8d442981c66df0a0914c5994c77d9a82e1baf717cd0d9c9b6ca3caae6a7ce",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/common.hpp",
+      "category": "SOURCE",
+      "bytes": 3908,
+      "sha256": "29242d9259cb023b2396f14010bad3ef182bfdf8c3db1f9fe3152a5d7ed2a62b",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/env.hpp",
+      "category": "SOURCE",
+      "bytes": 705,
+      "sha256": "2420ca4f2e5ba275ea09920a6cf6c4d1bcbab8da31e15820cf46ef55cc70f896",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/ggml_types.hpp",
+      "category": "SOURCE",
+      "bytes": 1858,
+      "sha256": "935835090225bda20555105ff3d1003e907cc9ec6d9708e05958490f4dd2b633",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/gguf.hpp",
+      "category": "SOURCE",
+      "bytes": 3495,
+      "sha256": "cae9b91665fd3e96ee187647cc2ed2d7946fc0e800ae9b3b7f9d56e99b9edaac",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/host_store.hpp",
+      "category": "SOURCE",
+      "bytes": 3080,
+      "sha256": "1fb2a15ad1f8cce8b8c6653d5a3bd98b02bc226ca4ca02c05c2e2d4504704716",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/json.hpp",
+      "category": "SOURCE",
+      "bytes": 5267,
+      "sha256": "d3ab0b927c7a07bf4aa4bfd76d79a7bf848d159c2679f0786394aae45bacc73b",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/manifest.hpp",
+      "category": "SOURCE",
+      "bytes": 8909,
+      "sha256": "1a35f2b2de2c57ff755802ddcb7dfa2865b58b6f8eeeb4f641ede7da54ecf87d",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/planner.hpp",
+      "category": "SOURCE",
+      "bytes": 4763,
+      "sha256": "3fa0a44a516fbe12b4a189134472dc447936645f43dbf5842d1ca67b9d6c189f",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/ring_buffer.hpp",
+      "category": "SOURCE",
+      "bytes": 4427,
+      "sha256": "8543a678582bf861cc89aa2cce1d09602bfc8608a052d7f63977bbf16a2a1936",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/scheduler.hpp",
+      "category": "SOURCE",
+      "bytes": 4355,
+      "sha256": "fd64e68f0d11be9951dc29579fb6abd56f117e8f80cac1063958ec8d5162bd77",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/sim.hpp",
+      "category": "SOURCE",
+      "bytes": 5291,
+      "sha256": "4729726bdb5439464d314317b72aae3695e4771dc0938a949d83987fd29ddb0c",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/telemetry.hpp",
+      "category": "SOURCE",
+      "bytes": 5776,
+      "sha256": "6a5858d574635fca4d319f35a4d249e5221c72c5fd518c2b3039b9dafe3f2dc8",
+      "git_tracked": true
+    },
+    {
+      "path": "include/alsr/transfer_backend.hpp",
+      "category": "SOURCE",
+      "bytes": 2690,
+      "sha256": "166c13cacf64e0ade2fd81ca2250cc89ba69f22a53c06c2eedfb478037213ff8",
+      "git_tracked": true
+    },
+    {
+      "path": "results/.gitkeep",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": true
+    },
+    {
+      "path": "results/all_runs.csv",
+      "category": "EVIDENCE",
+      "bytes": 745,
+      "sha256": "77a8268d231d009b68c3ad3d8283321cd12b9d5aad19df4f5fe3bea82b513935",
+      "git_tracked": false
+    },
+    {
+      "path": "results/bandwidth_m5.json",
+      "category": "EVIDENCE",
+      "bytes": 4681,
+      "sha256": "5b9a37a0477d356e80d9983870ef152688dce971dcb7821a1073fcac3df33fa4",
+      "git_tracked": false
+    },
+    {
+      "path": "results/bandwidth_report.md",
+      "category": "EVIDENCE",
+      "bytes": 978,
+      "sha256": "a4316e80a05f466da621a4d2654ab1bf54412c15667daa607bcdef00a6bb42b6",
+      "git_tracked": false
+    },
+    {
+      "path": "results/baseline_m5.json",
+      "category": "EVIDENCE",
+      "bytes": 3302,
+      "sha256": "fb7cfedb68a3ac969189c45d5259b2d1209ff0e2ef2205cb4e9858f259a9de39",
+      "git_tracked": false
+    },
+    {
+      "path": "results/baseline_m5_user_provided/provenance.json",
+      "category": "EVIDENCE",
+      "bytes": 2140,
+      "sha256": "2cebb8259f066a34c6d5a646634fc92e1bbda1ea22731e93274e87e79db55b1c",
+      "git_tracked": false
+    },
+    {
+      "path": "results/environment_m5.json",
+      "category": "EVIDENCE",
+      "bytes": 1927,
+      "sha256": "27b5e8aa371dc32d825c2d16b74718205909d01fc0b4b694289afe550ccd41c6",
+      "git_tracked": false
+    },
+    {
+      "path": "results/gguf_gemma4_12b.json",
+      "category": "EVIDENCE",
+      "bytes": 224974,
+      "sha256": "ba2bf768af24a64f23d05159c41a8f93186e59a04b374520b11ae17649a49748",
+      "git_tracked": false
+    },
+    {
+      "path": "results/gguf_gemma4_31b.json",
+      "category": "EVIDENCE",
+      "bytes": 424167,
+      "sha256": "870b19a1d6c9e1598d92b9327d50d78e0d3835fc144c1b32e9c21443074ec1cf",
+      "git_tracked": false
+    },
+    {
+      "path": "results/manifest_gemma4_12b.json",
+      "category": "EVIDENCE",
+      "bytes": 211056,
+      "sha256": "d601cc53946eca1e08030e8087ebef055a22cf1b2a979c976532be85f5df3aa2",
+      "git_tracked": false
+    },
+    {
+      "path": "results/manifest_gemma4_31b.json",
+      "category": "EVIDENCE",
+      "bytes": 531623,
+      "sha256": "7fdaf8834243570ef9d15e6a2212118e79b1e829052dd3669026e67dc9fec91f",
+      "git_tracked": false
+    },
+    {
+      "path": "results/plan_gemma4_256mib.json",
+      "category": "EVIDENCE",
+      "bytes": 200773,
+      "sha256": "79a522b3c3b184ce7b453161746ede2f21d4aa6566e5d4c1840e13c965f78bd5",
+      "git_tracked": false
+    },
+    {
+      "path": "results/plan_gemma4_31b_256mib.json",
+      "category": "EVIDENCE",
+      "bytes": 368630,
+      "sha256": "4b9eabb5a2bdb45f328edf0b91a91615ad7c37a8f5c39a680acf1cad62dbf291",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3115,
+      "sha256": "3001e3a8e79faf83f79b9f0e001551faf65d352507b3e61655d5eb8c5624a88c",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "125a98951aa5b1cced736b8473da46412ec6f1c29d4ed0b4836efefdf501836c",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 297000,
+      "sha256": "14437336be66148c5cac2eab4b3db359b451f3dec1ef62def8da7818cb0e82c1",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 18287,
+      "sha256": "a62fa9d11cd34aa608f7bb6491f604879c0533f0931a81dfc0e64afdbb374115",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7232,
+      "sha256": "edb0ccd12a515de888a3295ad8000e1d67f6813623ee08d7ef90660227984d5b",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 108,
+      "sha256": "dcbe111251ab486784b733f1cf13e0c97741bfac3a32a2468632d3f808a870d8",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 647,
+      "sha256": "7aefdcf978c78280e8d06dec8e665a2c160cac22dec85a030838feca58ab2fce",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 615,
+      "sha256": "80b01688b41294aba35c5c042c650c2849fdab8cad39fa0ffa33de3bd5fd48ba",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2466,
+      "sha256": "52a2a667bdfbc9badd3c92c79c03dbdafa912a6a3aed1aee5f3a74ad1c453805",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3418,
+      "sha256": "457d12c67d3a994fb58edf8ba207ea20aec264bf4b2495a0599f88be2e5e619c",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "fc5672b82a34665fee852e4881841f95068deacc404dbd5907e26b9c01800c5a",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 297000,
+      "sha256": "14437336be66148c5cac2eab4b3db359b451f3dec1ef62def8da7818cb0e82c1",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 18506,
+      "sha256": "0b39d0032879c67e5dd1895cfb2649ed76b22b80dc550dd6285ce2ac2a8c5bc1",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7542,
+      "sha256": "644326fe0bdb10c0724466b9157bb7d11ea7b5dd892c48be1f34318976753766",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 368,
+      "sha256": "655245e8a1f4bbf706f9e1cdda9e589f3224e7f30fe5ad5ecf71e4cd7b487b0b",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 660,
+      "sha256": "083841de5ff019fb7330319f11bf43ae40fe656858faf134b015f8333d01d106",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 621,
+      "sha256": "7bf5573630b510ca0467e4a0959578f0cd20cc6ba5db21a1fdd6d8777318fa17",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2475,
+      "sha256": "cbb50b208744adfae4598215b12fb9f3fa03a1a7ba645e048f2e54ef9fb4fb04",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3385,
+      "sha256": "c5c1fd726217229e0eb9293efc68f24c6a11c9273fe85a3b10f51138692c5df7",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "ac2417749fc3c971c0a5f5280ba45fbfae41eb15d7f49c27e55ec5327c693fae",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 210,
+      "sha256": "0107bccdb09c5c6eb55ec5bb1b3c03e8867271062ca6d8ec8b867cf8c366458c",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 35677,
+      "sha256": "a47204e89010b2fa9540e8553f95cfdb1b4f6c6650d2ab9258937ba737c0024a",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7359,
+      "sha256": "65fc048ab55b21c71280ef05d4738e97e9200b294973ce4b21967bc647c8e492",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 801,
+      "sha256": "4c0bf559b919bc539df71401b051dd33713401df8509d814a289931ee4329e61",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 633,
+      "sha256": "c3fd6f41a8bfab28e66fb5a094e112405829b79e212119394ded415afb8c6f3a",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 624,
+      "sha256": "bf27a902c9bc3c12a9625dfb71f1534f8456499846038363bc127ffec03b0113",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2278,
+      "sha256": "8618da3421d48182658b752fc2d52550cb39845139cd2f953eb39000cb7239ea",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3140,
+      "sha256": "177dbae1375e13d397ade72a6712bb98b625dc8e726c5a46d742810d0cbb9ce8",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "0b02bd58e5a38d9c62e4d7cc5f88b77132dc430b254340fdeee8e4215ee1fc26",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 526286,
+      "sha256": "6e7e5c06b59c1ca813768e569a18716035f6cac5f9b451b29ea4faedca3fef27",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 22636,
+      "sha256": "b9a9349732a677ed58fd7cf4332bda9439d752c91aa0d8f0301ebb752669c4fa",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7468,
+      "sha256": "46fe91e111bc19454d0d5affdde6db318a71f60b924e7c985f79e97da3afa197",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 108,
+      "sha256": "dcbe111251ab486784b733f1cf13e0c97741bfac3a32a2468632d3f808a870d8",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 661,
+      "sha256": "24256d38f927d9d8d1a58c99d4349ed806a49453dc97d81842bc46e073cfd729",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 616,
+      "sha256": "1379587b6775decf88cce5ac1ee8eaeadec243bb6e0d7b1c72c2fbec9356aaa1",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run04-31b-resident10-pcie4-596595facb61/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2486,
+      "sha256": "fa002ea00c909f4d2c2f46d57663d920f9ce985dfb48c73cd968be18332ea7c0",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3437,
+      "sha256": "8cf6828acb506ef7ce234c6d50949c30e09f368d75a15401f8ea3969f12a9729",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "627fd4297c803f8ed6db5af7de9804707d2fc4317cf60d71dfe90dafaf4a8798",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 526286,
+      "sha256": "6e7e5c06b59c1ca813768e569a18716035f6cac5f9b451b29ea4faedca3fef27",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 22758,
+      "sha256": "9c35126d960e80899e8f8d28d0fa3071ed3d97a42d40b0351b3c84e75d574328",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7770,
+      "sha256": "ee3c4fd7e2d9b26e3267bcd9acf446c024e2bab796f7e7fe4bce47e4156cd4c5",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 238,
+      "sha256": "02dbbc1fb7e50f68dfe1fccf526890122847e2a932ec78257be6e35c1d9183a2",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 663,
+      "sha256": "0f09d615c53c222ed41bba2feccc19a0264dad0149b02578683389754426ab27",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 620,
+      "sha256": "6adb7bde65a3259425e79fd3f55af2a3da5383a1ab83f79d1c350ab2a0d738af",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2487,
+      "sha256": "f90a843fe2ac9cd2a53093aa5365e08479a96eb27bbde33be665985939217540",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/config.json",
+      "category": "EVIDENCE",
+      "bytes": 3129,
+      "sha256": "e388308b72beafc391064ba8420fd7498c2097ebe97cede8a86e8f7f49da36f9",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/environment.json",
+      "category": "EVIDENCE",
+      "bytes": 1963,
+      "sha256": "2638eee7616ae6227b6887c6ec99b318521106891e5e458aff2fe8f1cf5a9631",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/manifest.json",
+      "category": "EVIDENCE",
+      "bytes": 526286,
+      "sha256": "6e7e5c06b59c1ca813768e569a18716035f6cac5f9b451b29ea4faedca3fef27",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/metrics.jsonl",
+      "category": "EVIDENCE",
+      "bytes": 48141,
+      "sha256": "87301a213a9ccb751eaec62ade3e12c56ce1aa29b52eb965dff487afa22382a6",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/report.md",
+      "category": "EVIDENCE",
+      "bytes": 7459,
+      "sha256": "463dee14a0b1c8ea4616fcea89e39e57ba90bcc008b8c3e28339c927cefb3138",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/scheduler_log.json",
+      "category": "EVIDENCE",
+      "bytes": 108,
+      "sha256": "dcbe111251ab486784b733f1cf13e0c97741bfac3a32a2468632d3f808a870d8",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/stderr.log",
+      "category": "EVIDENCE",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/stdout.log",
+      "category": "EVIDENCE",
+      "bytes": 661,
+      "sha256": "a1ab51ffb89de8c1dae91553068db318dd1cb4356ab7a7a966c0416d126d773e",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.csv",
+      "category": "EVIDENCE",
+      "bytes": 616,
+      "sha256": "b864374d151b77c4cd47066ef929da398244a08dc17bfb713d3bce08d76ba364",
+      "git_tracked": false
+    },
+    {
+      "path": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json",
+      "category": "EVIDENCE",
+      "bytes": 2485,
+      "sha256": "67764226bd78af7dfbaa50dd79c1093fe879a4e1be1b6c32bea874c290f49c35",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_chunk_sizes.json",
+      "category": "EVIDENCE",
+      "bytes": 5549,
+      "sha256": "abfa98b3809ddb10dff86acb9e9da23568d36b145d92b308e03119afa5df461a",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_1024mib.json",
+      "category": "EVIDENCE",
+      "bytes": 345087,
+      "sha256": "daaecab4fa9267047c795027f5db8d892d46342b0f505aa4ab19fed1b6ae13e2",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_128mib.json",
+      "category": "EVIDENCE",
+      "bytes": 406332,
+      "sha256": "3e40e81ac9ec4adf0859f8072be4a98a8c9b8f01b62b91cc4a4e8f03d21c6d6e",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_256mib.json",
+      "category": "EVIDENCE",
+      "bytes": 368630,
+      "sha256": "4b9eabb5a2bdb45f328edf0b91a91615ad7c37a8f5c39a680acf1cad62dbf291",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_512mib.json",
+      "category": "EVIDENCE",
+      "bytes": 352506,
+      "sha256": "fed017411526cf5a7036b0b5a3a11097f60567f67129b8ea2873e9876b1b4c93",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_64mib.json",
+      "category": "EVIDENCE",
+      "bytes": 484946,
+      "sha256": "e36a938329e2a3669cdc7d19780308e24c71d1d028dd44b939abc444b95a2e3b",
+      "git_tracked": false
+    },
+    {
+      "path": "results/sweep_plan_variable.json",
+      "category": "EVIDENCE",
+      "bytes": 550695,
+      "sha256": "a2b0a9775e4836692e4d64bc1659a4243745dd296885099e32c647a7e862665e",
+      "git_tracked": false
+    },
+    {
+      "path": "scripts/baseline_m5.sh",
+      "category": "TOOLING",
+      "bytes": 5257,
+      "sha256": "4752b640d3c0d218a7b878a477b3386b17ede5e13d8a3074b1590d28574090a0",
+      "git_tracked": true
+    },
+    {
+      "path": "scripts/collect_environment.sh",
+      "category": "TOOLING",
+      "bytes": 1446,
+      "sha256": "2ce0d606861c25f8db07ec90c5ee0005830b3be2c5c10459a51252bfb2f25014",
+      "git_tracked": true
+    },
+    {
+      "path": "scripts/run_samples.sh",
+      "category": "TOOLING",
+      "bytes": 2454,
+      "sha256": "06fbdd3a04bc5bde5f03c41777aaf9c4d085cba9af07944afcd1fff5cafe596f",
+      "git_tracked": true
+    },
+    {
+      "path": "scripts/sweep_chunk_sizes.sh",
+      "category": "TOOLING",
+      "bytes": 6882,
+      "sha256": "782447b40245bedff4530896f09ba0ab97937f5b31aa888904d9aaf9b215ca7b",
+      "git_tracked": true
+    },
+    {
+      "path": "src/buffer/host_store.cpp",
+      "category": "SOURCE",
+      "bytes": 5546,
+      "sha256": "7169035357308c77728507702338dbfd7168d26ad6ad4da148a4b51f5a28138d",
+      "git_tracked": true
+    },
+    {
+      "path": "src/buffer/ring_buffer.cpp",
+      "category": "SOURCE",
+      "bytes": 4635,
+      "sha256": "a06de4f9163e49fcef76f74c47113393480ba720582c964682a2d761861f3d4a",
+      "git_tracked": true
+    },
+    {
+      "path": "src/cli/alsr_bw.cpp",
+      "category": "SOURCE",
+      "bytes": 9686,
+      "sha256": "948c41b6f36d86940bcb419cef6bcd305e85ee684d82ac983cbd39491d535e3e",
+      "git_tracked": true
+    },
+    {
+      "path": "src/cli/alsr_inspect.cpp",
+      "category": "SOURCE",
+      "bytes": 15453,
+      "sha256": "5173a67c3226af1687e46167f92186aae9bbb25ca7e288f0e989362a7d5bc703",
+      "git_tracked": true
+    },
+    {
+      "path": "src/cli/alsr_plan.cpp",
+      "category": "SOURCE",
+      "bytes": 5047,
+      "sha256": "f179ef02de1902788f4a07c37efc318a4d4898090d027cbbbe62dae5fdabaf93",
+      "git_tracked": true
+    },
+    {
+      "path": "src/cli/alsr_sim.cpp",
+      "category": "SOURCE",
+      "bytes": 9268,
+      "sha256": "62012f35fe67cc877e5c3268b5ca5790f8796853db5c78c0508e6e24ab0676c3",
+      "git_tracked": true
+    },
+    {
+      "path": "src/cli/cli_common.hpp",
+      "category": "SOURCE",
+      "bytes": 6039,
+      "sha256": "364fa3f98ef7e766cea85935734ec7896388b4a5cd146a71bc0bafcc1db7efca",
+      "git_tracked": true
+    },
+    {
+      "path": "src/inspector/ggml_types.cpp",
+      "category": "SOURCE",
+      "bytes": 5257,
+      "sha256": "b809c28a48370ac1c5d7c7503b65a8e475c8a7180b94cb2592ce66625ab5e998",
+      "git_tracked": true
+    },
+    {
+      "path": "src/inspector/gguf.cpp",
+      "category": "SOURCE",
+      "bytes": 13978,
+      "sha256": "a203786d299ec1c84d4ddd3798649c6d425bb40347ae2e89f7c61ce3c2a2963d",
+      "git_tracked": true
+    },
+    {
+      "path": "src/inspector/manifest.cpp",
+      "category": "SOURCE",
+      "bytes": 31854,
+      "sha256": "cdb7eb269ffc102c1e87fdae218f4eabff8929965f6ec10949b778215e67041e",
+      "git_tracked": true
+    },
+    {
+      "path": "src/planner/planner.cpp",
+      "category": "SOURCE",
+      "bytes": 20181,
+      "sha256": "9e25ce91849078830b7cd1e7122bf77d9e4f3ad82e83c269bb439867eed4424b",
+      "git_tracked": true
+    },
+    {
+      "path": "src/scheduler/scheduler.cpp",
+      "category": "SOURCE",
+      "bytes": 8870,
+      "sha256": "d58db012997e4033652d7e401bdc8ccb106bd55459e0e6cb052cad0c68dd29ea",
+      "git_tracked": true
+    },
+    {
+      "path": "src/sim/bandwidth.cpp",
+      "category": "SOURCE",
+      "bytes": 4275,
+      "sha256": "caa13fe12394845f01cf09ab680e266e514ddd2abd91efa00272a1119fec1f37",
+      "git_tracked": true
+    },
+    {
+      "path": "src/sim/sim.cpp",
+      "category": "SOURCE",
+      "bytes": 34241,
+      "sha256": "0185fbd8930f76d0b84a295123806ea5696e291193dd862dec83f05224661e68",
+      "git_tracked": true
+    },
+    {
+      "path": "src/telemetry/checksum.cpp",
+      "category": "SOURCE",
+      "bytes": 8064,
+      "sha256": "65657e19bcda72098bc0109a042d520a3a71fb6c07fbc978272362524b9625cf",
+      "git_tracked": true
+    },
+    {
+      "path": "src/telemetry/env.cpp",
+      "category": "SOURCE",
+      "bytes": 4965,
+      "sha256": "ba16d77c06924f8dfc92a31bcf6e47554cfe3505a611dac50b937af0f5afaf86",
+      "git_tracked": true
+    },
+    {
+      "path": "src/telemetry/json.cpp",
+      "category": "SOURCE",
+      "bytes": 14536,
+      "sha256": "9f7d23652d2a6ce357bdca408f3abf48bfd30ca974b60334b604849972a6ab45",
+      "git_tracked": true
+    },
+    {
+      "path": "src/telemetry/telemetry.cpp",
+      "category": "SOURCE",
+      "bytes": 15545,
+      "sha256": "da455fc6e5285e916362d18752c9f2760a88abd70b413365d495b1238eb38840",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/CMakeLists.txt",
+      "category": "SOURCE",
+      "bytes": 788,
+      "sha256": "0b1796b9a25e9a969dde92c317a2dadf593739e09f511e92819507ea4cceb083",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/integration/test_pipeline.cpp",
+      "category": "SOURCE",
+      "bytes": 12146,
+      "sha256": "6900c7727890ec9dc6507167dac76ea0b1273289b6a6bf185a77f2bbb0c5e8b5",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/stress/test_stress.cpp",
+      "category": "SOURCE",
+      "bytes": 10589,
+      "sha256": "d42a67d1ee70b398f0bc55a2f1c6100e2ba4d55fc1260f62f713ad111287502d",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/test_helpers.hpp",
+      "category": "SOURCE",
+      "bytes": 4696,
+      "sha256": "2d1845be8cf1f7694bacd6289f3469595e302dab516ce296f100119c57ba9f65",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_checksum.cpp",
+      "category": "SOURCE",
+      "bytes": 2841,
+      "sha256": "746b6766ab8dbeba2c20618ac13a35f0f8ec259d95300ff37f8cff37c9dc5a92",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_ggml_types.cpp",
+      "category": "SOURCE",
+      "bytes": 3054,
+      "sha256": "3b2a448019ad685d82bd8a1155216f3738c1fee23314e02887b1bcdccc67c043",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_gguf.cpp",
+      "category": "SOURCE",
+      "bytes": 13587,
+      "sha256": "7ea22907091087cb5cd5729c337accb839d0d6fb6595cc87b13e6b3cf912929b",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_json.cpp",
+      "category": "SOURCE",
+      "bytes": 3766,
+      "sha256": "4e2e60b3da3c311add89223ecafe982a93e976ca4553beb01b2667122cd7105a",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_planner.cpp",
+      "category": "SOURCE",
+      "bytes": 8960,
+      "sha256": "d5f324ed825b2eb913b5e474f3ea66647ca11f87126e7237a66e710a4c93274f",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_ring_buffer.cpp",
+      "category": "SOURCE",
+      "bytes": 5463,
+      "sha256": "2b6c1c703d5db448b2925f14e79df3684f3233355ef0f3393d8c51b3623989ee",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_scheduler.cpp",
+      "category": "SOURCE",
+      "bytes": 6099,
+      "sha256": "4b2025aab059f362aa09ec932524c0768ce49bcf1fe245572eec2040f092d4f8",
+      "git_tracked": true
+    },
+    {
+      "path": "tests/unit/test_telemetry.cpp",
+      "category": "SOURCE",
+      "bytes": 7290,
+      "sha256": "09944ca0fb9ce0c4d4d08520e4f83ec865f907568c12a22b2e32427d76a33a96",
+      "git_tracked": true
+    },
+    {
+      "path": "third_party/.gitkeep",
+      "category": "OTHER",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_tracked": true,
+      "added_by": "ALSR-A0-REM-01",
+      "note": "初版で索引から漏れていた追跡ファイル。third_party/ を一括除外した際、FetchContent 取得物（third_party/_fetch/）ではない追跡ファイル 2 件まで除外していた。sha256 は空ファイルのハッシュである。"
+    },
+    {
+      "path": "third_party/README.md",
+      "category": "OTHER",
+      "bytes": 690,
+      "sha256": "533e91012779256a1a1f8a479bf3155a301d83589d602a2320a8c96004d3c3cc",
+      "git_tracked": true,
+      "added_by": "ALSR-A0-REM-01",
+      "note": "初版で索引から漏れていた追跡ファイル。third_party/ の運用方針を記述した文書であり、取得物ではない。"
+    },
+    {
+      "path": "tools/analyze_results.py",
+      "category": "TOOLING",
+      "bytes": 4092,
+      "sha256": "abd8c3a6f15ebea840611a2edec78e437937814842a24744ac129bcf730f17f4",
+      "git_tracked": true
+    },
+    {
+      "path": "tools/make_report.py",
+      "category": "TOOLING",
+      "bytes": 4211,
+      "sha256": "a4ee0006eda036ec63b76539a71cf57bfd9f4f3b6b25caa0ee1d3d288e4da9a8",
+      "git_tracked": true
+    }
+  ],
+  "path_migration": {
+    "_note": "ALSR-A0-REM-02 item 6 / item 7。リポジトリ実体パスの移行と、その前後での results/ 連続性の記録。",
+    "observed_by": "ALSR-A0-REM-01（作業中に検出）",
+    "recorded_by": "ALSR-A0-REM-02",
+    "path_before": "/Users/yoshiki/Library/Mobile Documents/com~apple~CloudDocs/Desktop/デスクトップ - m-nexspaceのMacBook Air/ALSR-PoC",
+    "path_after": "/Users/yoshiki/Desktop/ALSR-PoC",
+    "path_recorded_in_A0_INVENTORY_section2": "/Users/yoshiki/Desktop/ALSR-PoC",
+    "nature": "iCloud Drive のデスクトップ同期配下から、ローカルの ~/Desktop 実体へ移った。移行そのものは本監査の操作ではなく、環境側（ユーザーによる iCloud デスクトップ同期の解除と推測される）で発生した。A0 は推測で埋めないため、原因は未確定として扱う。",
+    "detection": [
+      "ALSR-A0-RECOVERY-AUDIT-01 および ALSR-A0-REM-01 の序盤は旧パスで動作していた。",
+      "作業中に shell が『Working directory was deleted』を返し、旧パスの ALSR-PoC が消失した。",
+      "同時刻帯に ~/Desktop 配下の各ディレクトリの mtime が 2026-08-02 18:48 に更新されている。",
+      "find による探索の結果、実体は 1 箇所（新パス）のみで、旧パスには残っていない。"
+    ],
+    "identity_checks_across_migration": {
+      "git_head_before": "0ce74bda24843ead02ec2ee992febd65ab8882ae（セッション開始時の記録）",
+      "git_head_after": "0ce74bda24843ead02ec2ee992febd65ab8882ae",
+      "git_status_before": "?? docs/recovery/",
+      "git_status_after": "?? docs/recovery/",
+      "tracked_files_before": 71,
+      "tracked_files_after": 71,
+      "git_fsck_after": "--full --strict で異常報告なし（exit 0）"
+    },
+    "continuity_of_results": {
+      "method": "本索引が旧パスで記録した SHA-256（生成 2026-08-02 18:18 JST）と、新パスでの再計算値を全件突合した。",
+      "indexed_entries_total": 150,
+      "entries_recorded_before_migration": 148,
+      "entries_added_after_migration": [
+        "third_party/.gitkeep",
+        "third_party/README.md"
+      ],
+      "recomputed_match": 150,
+      "recomputed_mismatch": 0,
+      "missing_on_disk": 0,
+      "results_entries": 80,
+      "results_byte_identical": 80,
+      "results_on_disk_not_indexed": [],
+      "results_indexed_not_on_disk": []
+    },
+    "proven_range": [
+      "索引が記録している 150 件は、再計算した SHA-256 が記録値と全件一致する（不一致 0 / 欠落 0）。",
+      "うち 148 件は移行前（2026-08-02 18:18 JST、旧パス）に採取した記録であり、results/ 配下 80 件を含む。",
+      "results/ について、索引に無いファイルがディスク上に存在すること（0 件）も、",
+      "索引にあってディスクに無いファイル（0 件）も無い。",
+      "HEAD・追跡ファイル 71 件の集合は移行前後で一致し、git fsck --full --strict も異常を報告しない。",
+      "以上が本突合の示す範囲である。"
+    ],
+    "unproven_range": [
+      "索引生成（18:18）より前の状態。Run Pack が作られた 13:49〜14:32 の間に何が起きたかは、",
+      "本索引の外側であり証明できない。索引はこの区間の最も古いアンカーである。",
+      "18:18 と再計算時点の 2 点で hash が一致することは、その間に変更が無かったことを意味しない。",
+      "途中で書き換えて元へ戻した場合は区別できない。",
+      "旧パス（iCloud 側）と新パスが一時的に別々の実体として併存し、片方だけが変化していた可能性。",
+      "本監査は常に 1 つのファイルシステムビューしか観測しておらず、併存の有無を確認していない。",
+      "本索引自体に外部アンカーが無いこと。索引は実装担当が同一セッションで生成した未追跡ファイルであり、",
+      "署名も独立タイムスタンプも remote も無い（D-44 / integrity_checks._scope_limit と同じ限界）。",
+      "iCloud の evict / re-materialize が内容を変えていないこと。18:18 以降についても否定できない。",
+      "  2 時点（採取時 / 再計算時）の hash 一致から言えるのは、その 2 時点の内容が同一だということだけである。",
+      "  途中で変更され、再計算までに元へ戻された場合は区別できない。これは #2 と同じ理由であり、",
+      "  時間帯を『18:18 以前 / 以降』で切っても解消しない。ALSR-A0-REM-04 で訂正した（D-54）。"
+    ],
+    "residual_risk": "results/ 80 件のうち Git 追跡は .gitkeep の 1 件のみで、残る 79 件は .gitignore:22 により非追跡である（:23 の !results/.gitkeep で .gitkeep だけが除外解除されている）。Evidence 本体は Git のアンカーを持たない。パス移行はこの脆弱性を顕在化させた事例である（U-07 / U-11）。ALSR-A0-REM-04 で「80 件すべて非追跡」という誤記を訂正した（D-55）。",
+    "scope_limit_of_proven_range": [
+      "本突合が示すのは『索引が記録している 150 件が、現時点で記録値と一致する』ことに限られる。",
+      "移行という事象そのものは観測していない。移行の最中に何が起きたかは本結果からは言えない。",
+      "初版（ALSR-A0-REM-02）はここを『パス移行によって results/ の内容が失われた・混ざったことは起きていない』",
+      "と記載していたが、これは 2 点で範囲を超えていた。",
+      "(1) 事象（移行）についての主張であり、観測したのは移行前後の 2 つの状態だけである。",
+      "(2) 『失われていない』は索引に載っている範囲でしか言えない。18:18 以前に消えたファイルは索引に無く、",
+      "    したがって突合にも現れない。索引の網羅性は追跡ファイルについてのみ検証済みであり（tracked_file_reconciliation）、",
+      "    非追跡の results/ については『18:18 時点で存在した 80 件』以上の母集団を確定する手段が無い。",
+      "D-44（『事後に書き換えられた形跡なし』）と同型のスコープ超過の再発である。ALSR-A0-REM-03 で削除した（D-52）。"
+    ],
+    "_time_scope_note": [
+      "ALSR-A0-REM-04（D-54）。本突合には『いつ以降なら安全』という境界は存在しない。",
+      "初版（REM-02）と ALSR-A0-REM-03 は『証明できるのは 18:18 以降に限られる』と書いていたが、",
+      "これは 18:18 以降については連続性が証明できるかのように読める。実際には証明できるのは",
+      "『採取時点の記録値と再計算時点の内容が一致した』という 2 点の事実のみであり、",
+      "その 2 点の間についても、18:18 以前についても、何も証明していない。",
+      "18:18 が持つ意味は『これより前には突合の相手すら存在しない』という下限であって、",
+      "『これより後は保証される』という保証ではない。"
+    ]
+  }
+}

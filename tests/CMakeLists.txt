@@ -5,6 +5,8 @@ add_executable(alsr_tests
   unit/test_checksum.cpp
   unit/test_ggml_types.cpp
   unit/test_gguf.cpp
+  unit/test_real_graph_manifest.cpp
+  unit/test_real_supply.cpp
   unit/test_planner.cpp
   unit/test_ring_buffer.cpp
   unit/test_scheduler.cpp

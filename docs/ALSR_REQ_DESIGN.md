@@ -1,1075 +1,937 @@
-# Adaptive Layer Streaming Runtime（ALSR）PoC
-
-## 要件定義書・基本設計書
+# Adaptive Layer Streaming Runtime（ALSR）
+## 要件定義書・基本設計書 — Requirements Rebaseline Rev.3.7
 
 | 項目 | 内容 |
 |---|---|
-| 文書版 | 1.1（参照会話からの復元・再検証版） |
-| 作成日 | 2026-08-02 |
-| 対象 | M5 MacBook Air 16GB → Ryzen 7 5700X / RTX 3060 12GB 検証機 |
-| 初期モデル | Ollama `gemma4:12b` |
-| 最終研究対象 | 大規模Denseモデル（最終指標: Llama 3.1 405B級） |
-| 実装主担当 | Claude Code / Claude Sonnet 5 |
-| 状態 | 実装開始可能 |
+| 文書ID | `ALSR-REQ-DESIGN-REBASELINE-REV3` |
+| 文書版 | 3.7 |
+| 作成日 | 2026-08-03 JST |
+| 最終更新 | 2026-08-04 JST — M5凍結・Windows／RTX移行決定 |
+| 復元元 | 参照チャット全 57 ターン、現チャットのユーザー訂正、現行 Rev.1.1 / Rev.02 |
+| 研究対象 | 限られた高速メモリ／VRAMで大規模量子化 LLM をどこまで実推論できるか |
+| 前段検証機 | MacBook Air M5 / Unified Memory 16GB |
+| 本検証機 | Ryzen 7 5700X / RAM 96GB / RTX 3060 12GB |
+| 基準モデル | Gemma 4 12B（既存経路の基準。研究上限ではない） |
+| 規模研究帯 | 16GB制約超過モデル → 20〜31B級 → 70B級 → 120B級 → 405B級 |
+| 状態 | `APPROVED_REQUIREMENTS_BASELINE / M2_GREEN / M5_FROZEN / X0_NEXT` |
 
 ---
 
-## 0. 文書の位置づけ
+## 0. 文書の権威と変更規則
 
-本書は、前チャットで作成されたものの受け渡しに失敗した設計書を、会話履歴から復元し、2026-08-02時点の公式情報と物理条件を再確認した版である。
+### 0.1 本書の目的
 
-この研究の目的は、成功を演出することではない。RAM上のモデル重みを小さなChunkに分割し、GPU演算とRAM→VRAM転送を重ねることで、VRAM容量を超えるモデルの推論にどの程度の実用領域があるかを測定する。成立しない条件を定量的に確定することも、正式な成果とする。
+本書は、実装容易性を優先した過去の縮約を除去し、ユーザーが会話で明示した研究目的を正本として再構成する。
+現行 `docs/ALSR_REQ_DESIGN.md` Rev.1.1 とチャット上の Rev.02 は、技術資料および差分監査対象として参照するが、本書の要求を縮小する根拠にはしない。
 
-本書では、以下を明確に分離する。
+### 0.2 権威順位
 
-- M5で検証する制御ロジック、モデル解析、計測系
-- RTX 3060で検証するPCIe、Pinned Memory、CUDA Stream、VRAMリングバッファ
-- DenseモデルとMoEモデルの成立条件
-- 「モデルを起動できること」と「実用速度で継続推論できること」
+要求の権威順位は次のとおり。
 
----
+1. ユーザーの明示要求・訂正・禁止
+2. ユーザーが選択肢として明示承認した範囲
+3. ユーザーが内容を確認し明示承認した設計
+4. AI の提案、推測、便宜上の段階分け
 
-## 1. 背景と研究仮説
+第4項は要求ではない。AIは、工数・計算資源・利用制限・実装難度を理由に第1〜3項を縮約してはならない。
 
-### 1.1 背景
+### 0.3 変更統制
 
-一般的なローカルLLM推論では、モデル重みの大部分をVRAMへ常駐させる。モデルがVRAMへ収まらない場合は、CPUオフロード、Unified Memory、複数GPU、または低ビット量子化を利用するが、速度はメモリ階層間の転送に強く制約される。
-
-本研究では、次のメモリ階層を明示的に制御する。
-
-```text
-SSD（永続保存）
-  ↓ 起動時ロード、将来は第3キャッシュ
-RAM（モデル全体または大部分を保持）
-  ↓ 非同期・先読み・Chunk転送
-VRAM（高速リングバッファ／作業集合）
-  ↓
-GPU（推論カーネル）
-```
-
-### 1.2 仮説
-
-モデルの実行順序を事前解析し、次に必要な重みを予測できる場合、以下を組み合わせることで要求駆動型オフロードよりGPU待機を減らせる可能性がある。
-
-1. モデル構造とテンソル実行順の事前解析
-2. レイヤー／テンソル境界を尊重した可変Chunk生成
-3. Pinned Host Memory
-4. 非デフォルトCUDA Streamによる非同期H2D転送
-5. 演算と転送のオーバーラップ
-6. ダブル／トリプル／リングバッファ
-7. GPU消費速度に追従する適応型スケジューラ
-8. 実行履歴に基づく先読み距離とChunkサイズの調整
-
-### 1.3 非仮説
-
-ALSRは次を主張しない。
-
-- PCIeの物理帯域を超える。
-- RAMがVRAMと同じ速度になる。
-- RTX 3060の演算性能が上位GPUと同等になる。
-- リングバッファを深くすれば、平均帯域不足を無限に隠せる。
-- M5上のMetal結果だけでCUDA実装の成立性を証明できる。
-- 405B DenseモデルをRTX 3060で実用速度運転できることを事前に保証する。
+- 研究対象、成功条件、Gate順序、モデル規模範囲を変更する場合はユーザー裁定を要する。
+- 実装担当は受入基準を変更しない。
+- 未確定事項は `OPEN` のまま記録し、実装しやすい値で埋めない。
+- Component、Simulator、Hardware、Real Inference、Research Conclusionの判定を混在させない。
+- 本書の承認だけでは既存コードの適合性は証明されない。既存コードはP0以降の各Gateで本書との適合を確認するまで `UNVERIFIED` とする。
 
 ---
 
-## 2. 最重要の物理条件
+## 1. 研究目的
 
-### 2.1 定義
+### 1.1 中核研究質問
 
-| 記号 | 意味 |
-|---|---|
-| `S_stream` | 1トークンのForward PassでRAM→VRAM転送が必要な重み量 [byte/token] |
-| `B_h2d` | 実測の持続H2D帯域 [byte/s] |
-| `B_ram` | 実測のRAM読み出し帯域 [byte/s] |
-| `B_prepare` | 変換・展開・再配置を含むChunk準備速度 [byte/s] |
-| `T_target` | 目標生成速度 [token/s] |
-| `C_i` | Chunk `i` の転送バイト数 |
-| `t_copy(i)` | Chunk `i` のH2D転送時間 |
-| `t_compute(i)` | GPUがChunk `i` を使用して演算する時間 |
-| `D` | VRAM上の先読みバッファ深度 |
+> 限られた GPU VRAM または高速メモリ環境で、量子化された大規模 LLM の重みを実行順序に沿って事前解析・分割・準備し、有限バッファと先読み制御を用いて演算系へ継続供給することで、どのモデル規模・量子化・Context・速度まで実推論を成立させられるか。
 
-### 2.2 定常状態の必要条件
+### 1.2 研究成果
 
-長時間連続運転でGPUを止めないための必要条件は次である。
+研究成果は単一モデルの成功ではなく、次の測定可能な成立領域である。
 
 ```text
-実効供給帯域 >= 実効消費帯域
-
-min(B_ram, B_prepare, B_h2d) >= S_stream × T_target
+モデル構造
+× 実weight bytes
+× 量子形式
+× Context
+× 高速メモリ容量
+× Host memory容量
+× Storage条件
+× Chunk計画
+× Buffer深度
+× Backend
+→ 正確性・安定性・速度・待機・メモリ使用量
 ```
 
-Chunk単位では、理想的なオーバーラップが成立するために概ね次が必要となる。
+成立しない境界、支配要因、撤退条件を証拠付きで確定することも正式な成果とする。
 
-```text
-t_prepare(i+1) + t_copy(i+1) <= t_compute(i) + 吸収可能なバッファ余裕
-```
+### 1.3 非目標
 
-バッファはOS揺らぎ、転送レイテンシ、カーネル時間のばらつきを吸収する。しかし平均供給速度が平均消費速度を下回る場合、任意の有限深度のバッファは定常状態で必ず空になる。
+ALSRは次を事前には主張しない。
 
-### 2.3 Denseモデルの帯域上限
-
-Batch=1の自己回帰生成では、Denseモデルは原則として各トークンで全レイヤーの重みを使用する。VRAMへ保持できない部分を毎トークン転送する場合、データ転送だけから導かれる上限は次となる。
-
-```text
-T_max <= B_h2d / S_stream
-```
-
-例として、`gemma4:12b`の7.6GB相当を毎トークン全量転送し、実測H2Dを仮に25GB/sと置くと、転送だけの理想上限は約3.3 token/sである。カーネル実行、同期、KVキャッシュ、メタデータ、再配置を含めると実効値はさらに低い。
-
-M5で観測された約15～16 token/sは、7.6GB級モデルがユニファイドメモリ上で動作した基準値であり、同じ速度をPCIeストリーミングで再現できる根拠ではない。
-
-### 2.4 405B級の意味
-
-Llama 3.1 405BはDenseなdecoder-only Transformerであり、最終的なストレス指標として適切である。一方、理想的な4bitだけでも重みは約202.5GBで、実際の量子形式ではスケール、メタデータ、アライメント等が加わる。
-
-仮に毎トークン200GBを25GB/sのH2Dで供給するなら、データ転送だけの上限は約0.125 token/sである。したがって405B級を実用化するには、単純な全重みストリーミング以外の追加条件が必要になる。
-
-- 大きな重み常駐率
-- 重み再利用の増加（Batch、投機、別実行方式）
-- 複数GPU／高帯域接続
-- アクティブ重みが少ないMoE
-- 追加圧縮と十分高速なGPU側展開
-- アーキテクチャ自体の変更
-
-405Bは「PoCの最初の実装対象」ではなく、得られた式と測定値を外挿して成立／不成立を裁定する最終研究指標とする。
-
-### 2.5 MoEは別系統の研究対象
-
-`gpt-oss-120b`は116.8B総パラメータ、5.13Bアクティブパラメータ、60.8GiBチェックポイントのMoEである。Denseより1トークン当たりのアクティブ重みが少なく、ALSRとの相性が良い可能性がある。
-
-ただし、次レイヤーのExpert選択はルーター出力に依存するため、完全な事前予測はできない。MoE対応はDense PoCとは分離し、以下を追加研究する。
-
-- ルーティング確定後の緊急転送
-- 上位確率Expertの投機的プリフェッチ
-- Expert常駐キャッシュ
-- プリフェッチ命中率／廃棄率
-- 共有重みとExpert重みの異なる優先度
+- PCIeやストレージの物理帯域を超えること
+- RAMがVRAMと同じ速度になること
+- M5の結果だけでCUDA性能を証明すること
+- 1つのChunk設定が全モデルで最適であること
+- 31Bが動けば70B・120B・405Bも自動的に動くこと
+- Llama 3.1 405Bを含む405B級がRTX 3060で実用速度になること
+- Simulatorの結果だけで実LLM推論が成立すること
+- OS pagingで起動しただけの状態をALSR成立とみなすこと
 
 ---
 
-## 3. 対象環境
+## 2. ユーザー要求
 
-### 3.1 M5事前検証機
+| ID | 区分 | 要求 | 履歴根拠 |
+|---|---|---|---|
+| UR-001 | `USER_EXPLICIT` | RAM等の大容量層にあるモデルデータを、演算系が空にならないよう事前準備して継続供給すること | `2e08af4a-6b6a-4a0d-ba62-a2b55ce9cd58` |
+| UR-002 | `USER_EXPLICIT` | 実行開始時に、モデル構造、変換要否、供給可能量、メモリ階層差を解析すること | `a1aca011-9d83-4ea9-9365-e4fd26549b0d` |
+| UR-003 | `USER_EXPLICIT` | データをChunk化し、1 Chunkの供給中に次Chunkを準備済みにすること | `a1aca011-9d83-4ea9-9365-e4fd26549b0d` |
+| UR-004 | `USER_EXPLICIT` | 高額・大容量GPUを前提にせず、少ないVRAMで大規模ローカルLLMが成立する範囲を測ること | `2f565a5c-5990-48b5-8e89-6b4d3c83b2f4` |
+| UR-005 | `USER_EXPLICIT_CURRENT` | 12Bは基準点として扱い、研究対象を31B単体へ限定しないこと | 現チャットの明示訂正 |
+| UR-006 | `USER_EXPLICIT` / `APPROVED_SCOPE` | 量子化Denseモデルを主対象とし、20〜31B、70B、120B、Llama 3.1 405Bを含む405B級へ段階的に拡張すること | `d9b15758-b452-4b9a-aa73-72b9d61b75c2` / `e325a9ce-ca7c-438b-92f7-9cf2e5705848` / `4934ca06-a891-4d77-8109-7b03ae92e8c3`（C＋1） |
+| UR-007 | `USER_EXPLICIT_CURRENT` | M5でシステム構造の正常動作を実モデル・実推論で確認してからRTX用に組み替えること | 現チャットの明示訂正 |
+| UR-008 | `USER_EXPLICIT_CURRENT` | M5ではPCIe固有性能を主目的にせず、実行構造、データ供給、正確性、安定性を確認すること | 現チャットの明示訂正 |
+| UR-009 | `USER_EXPLICIT_CURRENT` | RTXでは同じコア構造を維持し、CUDA／PCIe／VRAM固有部分を接続して検証すること | 現チャットの明示訂正 |
+| UR-010 | `CONTROL_DERIVED_APPROVED` | 実測、ユーザー観測、Simulation、導出、仮定、仕様値を混同しないこと | 過去事故から導出。Rev.3全体承認により採用 |
+| UR-011 | `CONTROL_DERIVED_APPROVED` | 成立しない領域も定量的な研究成果として残し、成功へ見せかけないこと | 過去事故から導出。Rev.3全体承認により採用 |
+| UR-012 | `USER_EXPLICIT_CURRENT` | AIは実装しやすい最小MVPへ要件を無断変更しないこと | 現チャットの明示確認 |
+| UR-013 | `USER_EXPLICIT_CURRENT` | Gemma 4 31BをM5の最初のmemory-pressure実推論対象に含める。ただし31Bだけで研究を終了しないこと | 現チャットの明示訂正 |
+| UR-014 | `USER_EXPLICIT_CURRENT` | M2完了をもってM5の高負荷検証を凍結し、以後の31B／規模検証はWindows RTX機へ移すこと。これはUR-013のモデル対象を維持し、実行platformだけを上書きする | 2026-08-04の明示指示 |
+
+---
+
+## 3. 検証環境
+
+### 3.1 M5前段検証機
 
 | 項目 | 内容 |
 |---|---|
 | 機種 | MacBook Air M5 |
-| ユニファイドメモリ | 16GB |
-| 推論ランタイム | Ollama / Metal |
-| 初期モデル | `gemma4:12b`（Ollama上7.6GB） |
-| 実測モデル占有 | 約8.0GB |
-| Context | 4096 |
-| 実測生成速度 | 約15.35～16.49 token/s |
-| 実測Processor | 100% GPU表示 |
+| Unified Memory | 16GB |
+| 基準Runtime | Ollama / Metal |
+| 基準モデル | Gemma 4 12B |
+| 役割 | M2までのコア構造と実LLM経路の成立確認（UR-014により以後凍結） |
 
-上記実測値はユーザー提供結果に基づく。M5での検証範囲は次に限定する。
+M5には独立したRAM→PCIe→VRAM経路がない。このためPCIe、Pinned Memory、CUDA copy engine、CUDA Streamの性能は認定しない。
+一方でM5をParser／Simulator専用機へ縮小してはならない。M5 Gateには、実モデルを使った実推論経路が必須である。
 
-- Ollama通常推論の再現可能な基準値取得
-- モデル／GGUFメタデータ解析
-- Chunk Planner
-- キュー、リングバッファ、バックプレッシャー
-- 帯域エミュレーション
-- ログ、可視化、再現性
-- スケジューラのCPU負荷と正当性
-
-M5では独立VRAMへのPCIe H2D経路がないため、以下は合否判定しない。
-
-- Pinned Memoryの効果
-- CUDAコピーエンジン
-- PCIe実効帯域
-- CUDAカーネルとH2Dの重複率
-- VRAM枯渇時の実GPU待機
-
-### 3.2 RTX/CUDA本検証機
+### 3.2 RTX本検証機
 
 | 項目 | 構成 |
 |---|---|
-| CPU | AMD Ryzen 7 5700X（8C/16T、Zen 3） |
+| CPU | AMD Ryzen 7 5700X |
 | Motherboard | MSI MEG X570 UNIFY |
-| RAM | DDR4-3200 CL22、16GB×2 + 32GB×2 = 96GB |
-| GPU | NVIDIA GeForce RTX 3060 12GB |
-| OS | 実装開始時に記録すること |
-| CUDA / Driver | 実装開始時に固定・記録すること |
+| RAM | DDR4-3200 CL22 16GB×2 + 32GB×2 = 96GB |
+| Compute GPU | NVIDIA GeForce RTX 3060 12GB |
+| Display GPU | GTX 1660 SUPER |
+| 役割 | 分離VRAM環境でのCUDA、PCIe、実LLM、既存方式比較 |
 
-注意事項:
+RTX側のOS、Driver、CUDA、ボード型番、PCIe current generation／width、RAM実効帯域、H2D実効帯域は実機から取得する。
 
-- 異容量DIMM 4枚構成のため、理論51.2GB/sを実効値として扱わない。STREAM系ベンチマークで読み出し帯域を測る。
-- RTX 3060の製品仕様は12GB GDDR6、192-bitである。ボード固有仕様は実機から取得する。
-- MEG X570 UNIFYは対応CPUで1枚時x16、2枚時x8/x8となる。将来の2 GPU構成ではGPUごとのPCIe上限が半減し得るため、必ずリンク幅を実測する。
-- `nvidia-smi`表示だけに頼らず、CUDA sample、PCIeトポロジ、H2D microbenchmarkで確認する。
+---
 
-### 3.3 起動時に必ず収集する環境証拠
+## 4. モデル規模戦略
+
+### 4.1 モデル名と研究目的を分離する
+
+モデル名は測定点であって研究目的ではない。特定モデルが取得不能、Runtime非対応、構造不適合の場合は、同等の規模・構造・量子形式へ置換し、研究質問を維持する。
+
+| 段階 | 目的 | 合格の意味 |
+|---|---|---|
+| 12B級 | 通常経路、正確性、計測、回帰基準 | 基準が固定された |
+| 16GB制約超過 | M5でALSR実行構造が必要となる最初の実証 | Simulatorではなく実推論が成立した |
+| 20〜31B級 | 初期大規模測定帯 | 1つ以上の実モデルで成立条件を測定した |
+| 70B級 | 96GB RAM内の大規模Dense候補 | RTX環境で実推論または明確な不成立証拠を得た |
+| 120B級 | 量子化と構造差を含む拡張 | 測定モデルの適用限界を確認した |
+| 405B級（Llama 3.1 405Bを含む） | 最終研究ターゲット | 実行または実測値に拘束された不成立境界を裁定した |
+
+31Bの1回成功を研究完了としない。405Bを数式だけで処理して全体完了とも判定しない。
+Gemma 4 31Bは当初M5 Gate M3の初回選定モデルだったが、UR-014によりWindows RTX側R3Bへ移設した。Runtime非対応・取得不能等で置換が必要な場合、AIが自動で別モデルへ変更せずユーザーGateへ戻す。
+
+### 4.2 DenseとMoE
+
+最初の中核対象は量子化Denseモデルとする。MoEはExpert選択、resident set、先読み可能性が異なるため、Denseの結果へ混在させず別Gateで扱う。
+
+---
+
+## 5. 最重要の物理条件
+
+### 5.1 定義
+
+| 記号 | 意味 |
+|---|---|
+| `W_model` | モデル実体の総byte数 |
+| `W_resident` | 高速メモリ層へ保持できる重みbyte数 |
+| `W_wire/token` | 1 tokenの処理で低速層から高速層へ実際に供給するbyte数 |
+| `B_store` | StorageからHost／Unified Memoryへ準備できる実効帯域 |
+| `B_prepare` | 読取、検証、変換、dequant準備を含む実効準備帯域 |
+| `B_transfer` | Backendがconsumer側へ供給できる実効帯域。RTXではH2D、M5では同一意味へ無理に読み替えない |
+| `B_supply` | 実行経路上で継続供給を制約する最小実効帯域 |
+| `T_prepare(i)` | Chunk iの準備時間 |
+| `T_transfer(i)` | Chunk iのBackend供給時間 |
+| `T_compute(i)` | Chunk iに対応する実演算時間 |
+| `C_chunk` | Chunk byte数 |
+| `D` | 有限Ring Buffer深度 |
+| `C_fast` | VRAMまたはUnified Memory上でALSRが利用できる高速作業領域 |
+
+### 5.2 定常供給条件
+
+目標生成速度を `r` token/s とすると、定常状態の必要条件は次である。
 
 ```text
-OS / kernel
-CPU model / governor
-RAM容量・速度・チャネル状態
-GPU名・VRAM・PCIe generation・current/max link width
-NVIDIA driver
-CUDA runtime / toolkit
-CMake / compiler
-Ollama / llama.cpp commit
-モデル名・digest・量子化形式・ファイルサイズ
-常駐プロセスと空きRAM/VRAM
+B_supply >= W_wire/token × r
 ```
 
----
+実際の `B_supply` は存在する経路に応じて実測する。
 
-## 4. 目的と成功条件
+```text
+B_supply = min(B_store, B_prepare, B_transfer, その他の実測ボトルネック)
+```
 
-### 4.1 PoC目的
+M5には独立H2D経路がないため、`B_transfer`へ仮想PCIe値を代入してM5実測と呼ばない。
+RTXではStorage／RAM／H2D／dequant／computeを分離し、最小値を別の段階の値で代用しない。
 
-1. モデル重みを実行順序に沿って解析・分割できること。
-2. Chunkの完全性を維持したまま、先読みキューへ投入できること。
-3. 仮想帯域上で、固定Chunk／ダブルバッファ／リングバッファ／適応制御を比較できること。
-4. RTX 3060上で、Pinned MemoryとCUDA StreamによりH2Dと演算の重複を測定できること。
-5. 最良の既存方式と比較し、ALSRの改善量または不成立理由を示せること。
-6. 31B、70B、120B、405B級への外挿可能な測定モデルを作ること。
+平均供給帯域が平均消費要求を下回る場合、有限Bufferは枯渇時刻を遅らせるだけで定常不足を解決しない。
 
-### 4.2 研究成果としての成功
+### 5.3 Overlap条件
 
-次のいずれかを証拠付きで達成すればPoCは研究成果として成功とする。
+Chunk iの演算中に次Chunkを準備・供給するための基本条件は次である。
 
-- ALSRが比較対象より有意にGPU待機を削減する領域を発見した。
-- Chunkサイズ、バッファ深度、先読み距離の最適領域を特定した。
-- 特定のモデル規模／量子形式／GPUで物理的に成立しないことを定量的に証明した。
-- DenseとMoEで必要なスケジューラ設計が異なることを実測した。
+```text
+T_prepare(i+1) + T_transfer(i+1)
+<= T_compute(i) + measured_buffer_slack(i)
+```
 
-### 4.3 製品的な成功は別判定
+この式は設計仮説であり、実際の依存関係、同期、Runtime挙動、cache、jitterを実測して判定する。
 
-PoCが研究として成功しても、次を満たさなければ実用ランタイムとは判定しない。
+### 5.4 Memory Budget
 
-- 出力品質が基準実装と一致する。
-- 長時間運転で枯渇、メモリリーク、デッドロックがない。
-- 最良の既存オフロード実装に対して再現可能な速度優位がある。
-- セットアップ複雑性に見合う効果がある。
+RTXの高速メモリ予算は最低限次を含む。
 
----
+```text
+VRAM_total
+= runtime
++ KV cache
++ activation
++ CUDA workspace
++ dequant / temporary buffers
++ resident weights
++ ring buffers
++ safety margin
+```
 
-## 5. スコープ
+M5ではUnified MemoryをCPU用RAMとGPU用VRAMとして二重計上しない。最低限、OS、Runtime、model mapping、active working set、KV、activation、staging、compressed memory、swapの観測可能範囲を分離する。
 
-### 5.1 PoCに含む
+`resident_bytes`、Chunk数、Ring深度はMemory Budgetを通過した組合せだけをRun可能とする。
 
-- GGUF/Ollama blobの構造・テンソル一覧取得
-- テンソルサイズ、配置、量子形式、アライメントの記録
-- レイヤー／テンソル／サブテンソル単位のChunk計画
-- 64、128、256、512、1024MiBの固定Chunk試験
-- 可変Chunk試験
-- ダブル、トリプル、N段リングバッファ
-- 帯域とレイテンシのエミュレータ
-- H2D microbenchmark
-- Pinned / Pageable比較
-- CUDA Stream数の比較
-- CUDA Eventによるcopy/kernel時間計測
-- バックプレッシャー、キャンセル、タイムアウト
-- JSONLメトリクス、サマリーCSV、Markdownレポート
-- llama.cpp系実行経路への接続可否調査と最小統合
+### 5.5 Host Memoryを超えるモデル
 
-### 5.2 初期PoCに含まない
+`W_model`が物理Host／Unified Memoryを超える場合、モデル全体をRAM保持する前提は成立しない。
+Storage-backed mmap、OS paging、明示I/O等のどの経路を使用したかを記録し、ALSR管理の供給とOS任せのpagingを同一方式として報告しない。
 
-- 405Bモデルの実ファイル取得・実推論
-- 新しい量子化方式の学習
-- 独自GPU展開カーネルの本格最適化
-- SSD→RAM→VRAM三段キャッシュの本実装
-- 分散ノード間通信
-- NeutronGate本体への統合
-- Ollama本体の大規模改造
-- 本番API、GUI、ユーザー管理
+Windows RTX側のmemory-pressure Gateでは、モデルファイルが存在すること、起動すること、正確に継続生成できることを分離する。M5ではこのGateを実行しない。
 
-### 5.3 将来スコープ
+### 5.6 PrefillとDecode
 
-- SSDを第3キャッシュとする非同期I/O
-- DirectStorage / GPUDirect Storage相当の調査
-- MoE Expertキャッシュ
-- 複数GPU
-- 圧縮転送とGPU側展開
-- 実行履歴を使った予測プリフェッチ
-- NeutronGateへのモジュール統合
+PrefillとDecodeはデータ再利用、並列度、KV増加、token当たり供給量が異なるため、別メトリクス・別判定とする。
+
+```text
+prompt_eval速度 + decode速度 = 推論速度
+```
+
+のような単純加算を行わない。time-to-first-token、prefill throughput、decode throughputを独立保存する。
+
+### 5.7 圧縮転送
+
+圧縮転送を導入する場合、帯域要求には実wire bytesを、演算要求には展開・dequant時間と追加bufferを含める。
+圧縮率だけで速度改善を主張しない。圧縮転送はO-07が解決するまで中核必須要件へ昇格させない。
 
 ---
 
-## 6. 機能要件
+## 6. 基本アーキテクチャ
 
-### FR-01 モデル解析
+```text
+┌─────────────────────────────┐
+│ Model Store                 │
+│ file / mmap / explicit I/O  │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Model Inspector             │
+│ tensor / type / shape / byte│
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Execution Manifest          │
+│ dependency / order / reuse  │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Chunk Planner               │
+│ integrity-aware boundaries  │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Preparation / Ready Queue   │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Finite Ring + Backpressure  │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Platform Backend            │
+│ M5 backend / CUDA H2D       │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Real LLM Executor Adapter   │
+└──────────────┬──────────────┘
+               ▼
+┌─────────────────────────────┐
+│ Correctness + Telemetry     │
+└─────────────────────────────┘
+```
 
-- GGUFヘッダ、メタデータ、テンソル一覧を読み取る。
-- 各テンソルの名称、型、shape、offset、byte length、alignmentを出力する。
-- 読み取り専用で動作し、モデルファイルを変更しない。
-- 未対応量子形式は黙って推測せず、明示的に失敗する。
+### 6.1 移植境界
 
-### FR-02 実行順序マニフェスト
+次の契約はM5とRTXで共通とする。
 
-- テンソルを論理レイヤーへ関連付ける。
-- 実行順序、依存関係、常駐候補をmanifestへ記録する。
-- Embedding、output、norm、attention、FFNを区別する。
-- 解析できない名前規則は`unknown`として保存し、人間の確認を要求する。
+- Chunk identityとbyte range
+- Execution Manifestの意味
+- Queue順序とexactly-once条件
+- Ring slot状態遷移
+- Backpressureとcancellation
+- Scheduler input/output
+- Telemetry schema
+- Evidence Pack schema
 
-### FR-03 Chunk Planner
+M5→RTX移行時に交換できるのはPlatform Backend、Memory Allocator、Consumerのプラットフォーム依存部分である。
 
-- 固定サイズと可変サイズを切り替えられる。
-- テンソル境界を優先し、分割が必要な場合は量子ブロック境界とアライメントを守る。
-- 各Chunkへ連番、元offset、length、checksum、関連テンソルを付与する。
-- 同じ入力と設定から同じ計画を生成する。
+### 6.2 Simulatorの位置づけ
 
-### FR-04 Host Store
+Simulatorは以下の検証にのみ使う。
 
-- モデル全体または対象範囲をRAMへ事前ロードできる。
-- `mmap`と明示readの両方を比較できる。
-- CUDA版ではPageableとPinnedの両方を計測できる。
-- Pinned Memory量に上限を設け、OSを圧迫しない。
+- Queue／Ring状態機械
+- 帯域不足時の枯渇条件
+- jitterとbuffer余裕
+- timeout／cancel／error注入
+- Telemetryと数式の整合
 
-### FR-05 Queue / Ring Buffer
+Simulatorは、実モデルのトークン生成、出力正確性、実メモリ挙動、実GPU性能、既存Runtime比較を認定しない。
 
-- `FREE → FILLING → READY → COPYING → RESIDENT → CONSUMING → FREE`の状態遷移を持つ。
-- 単一所有権または世代番号によりABA問題を防ぐ。
-- producerがconsumerを上書きしない。
-- キャンセル時に全slotを安全に解放する。
+---
 
-### FR-06 Scheduler
+## 7. 機能要件
 
-- 静的、適応型の両モードを持つ。
-- 入力: queue depth、GPU処理時間、H2D時間、待機率、VRAM余量、直近の分散。
-- 出力: 次Chunk、Chunkサイズ、先読み距離、転送優先度。
-- 初期実装は決定論的な制御則とし、機械学習は使わない。
-- 制御変更の理由をログへ残す。
+### FR-01 Model Resolution
 
-### FR-07 Bandwidth Emulator
+- Runtime管理下のモデル実体を読み取り専用で解決する。
+- digest、量子形式、ファイル集合、総byte数を保存する。
+- 未対応形式を推測で処理しない。
 
-- 帯域、固定レイテンシ、jitter、burst、一時停止を設定できる。
-- 5、10、15、20、25、28GB/s等を再現できる。
-- M5上でCUDAの成立を主張せず、スケジューラの論理試験にのみ使う。
+### FR-02 Model Inspection
 
-### FR-08 CUDA Transfer Backend
+- metadata、tensor名、type、shape、offset、byte数、alignmentを取得する。
+- file size、tensor ranges、padding、metadataの関係を説明可能にする。
+- 同一モデルから決定論的なManifestを生成する。
 
-- `cudaMemcpyAsync`を非デフォルトStreamで使用する。
-- H2Dとkernelを異なる非デフォルトStreamで実行できる。
-- CUDA Eventで処理区間を計測する。
-- `deviceOverlap` / `asyncEngineCount`等の能力を取得する。
-- 同期範囲を最小化し、全Device同期をホットパスで乱用しない。
+### FR-03 Execution Manifest
 
-### FR-09 Consumer / Executor
+- tensor名の並びだけで実行順を確定しない。
+- 実Executor、Runtimeソース、計装または検証済み対応表に根拠を持つ。
+- dependency、reuse、resident候補、prefill/decode差を表現する。
 
-段階的に3種類を実装する。
+### FR-04 Chunk Planning
 
-1. Synthetic Consumer: 指定時間でChunkを消費し、完全性を検証する。
-2. CUDA Micro-kernel Consumer: 実データへ軽量演算し、copy/compute重複を測る。
-3. LLM Executor Adapter: llama.cpp等の実推論経路へ接続する。
+- tensor／quant block／alignment境界を破壊しない。
+- Chunkごとにid、source range、bytes、checksum、依存、消費順を持つ。
+- 固定Chunkと可変Chunkを同じManifestから生成できる。
+
+### FR-05 Model Store / Preparation
+
+- Storage、Host memory、staging memoryの所在を区別する。
+- preload、mmap、明示I/O、OS pagingをTelemetry上で区別する。
+- 次Chunkをconsumer要求前に準備可能にする。
+- 準備失敗を欠落として隠さず、明示エラーにする。
+
+### FR-06 Queue / Ring Buffer
+
+- 状態は最低限 `EMPTY / PREPARING / READY / IN_USE / RETIRED / ERROR` を持つ。
+- 欠落、重複、順序違反、上書きを検出する。
+- finite bufferであり、平均供給不足を無限に隠せない。
+- cancellation、timeout、shutdownを安全に扱う。
+
+### FR-07 Scheduler
+
+- 初期認定は固定方式で行う。
+- 入力として準備時間、consumer時間、queue depth、buffer余量、直近分散を使用できる。
+- 出力としてprefetch距離、Chunk選択、準備開始時刻を決定する。
+- Adaptive制御は固定方式の実測ボトルネックを取得後、独立Gateで認定する。
+
+### FR-08 Platform Backend
+
+- M5 backendとCUDA backendが同一のChunk／Scheduler契約を実装する。
+- Backend固有の時間・メモリ・同期情報を共通Telemetryへ写像する。
+- Backendが未実装の場合、Simulator結果を実Backend結果として返さない。
+
+### FR-09 Real LLM Executor Adapter
+
+- 実際のprompt処理とtoken生成に、ALSRが供給したデータを使用する。
+- Executorが独自にモデル全体を別経路で読み込んだ場合はALSR Runを無効とする。
+- 基準Runtimeとの出力比較を可能にする。
+- PrefillとDecodeを分離計測する。
 
 ### FR-10 Telemetry
 
-最低限、次をChunkごとにJSONLで記録する。
+全メトリクスは次を持つ。
 
-```json
-{
-  "run_id": "...",
-  "chunk_id": 42,
-  "bytes": 268435456,
-  "queue_depth_before": 3,
-  "queue_depth_after": 2,
-  "prepare_ms": 0.0,
-  "h2d_ms": 0.0,
-  "compute_ms": 0.0,
-  "wait_ms": 0.0,
-  "effective_h2d_gbps": 0.0,
-  "checksum_ok": true,
-  "scheduler_action": "keep"
-}
+```text
+name
+value
+unit
+provenance
+platform
+model_digest
+run_id
+scope
+evidence_path
 ```
 
-Run単位では次を集計する。
+Provenanceは最低限次を区別する。
 
-- token/sまたはChunk/s
-- 実効H2D GB/s
-- GPU待機率
-- copy/compute重複率
-- queue starvation回数と最長時間
-- p50/p95/p99 copy時間
-- p50/p95/p99 compute時間
-- Pinned Memory量
-- 最大RAM/VRAM使用量
-- checksum failure
-- scheduler変更回数
+```text
+USER_OBSERVED
+MEASURED_M5
+MEASURED_RTX
+EMULATED
+DERIVED
+ASSUMED
+DECLARED_SPEC
+UNKNOWN
+```
 
 ### FR-11 Evidence Pack
 
-各Runは次の構造で保存する。
+各Runは最低限次を保存する。
 
 ```text
-results/<run_id>/
-├── config.json
-├── environment.json
-├── manifest.json
-├── metrics.jsonl
-├── summary.json
-├── summary.csv
-├── report.md
-├── stdout.log
-└── stderr.log
+command.txt
+config.resolved.json
+environment.json
+model_manifest.json
+execution_manifest.json
+chunk_plan.json
+metrics.jsonl
+summary.json
+correctness.json
+artifacts.sha256
+git_status.txt
+git_diff.patch
 ```
+
+Evidence未保存のRunは性能・成立性の正式Claimに使用しない。
 
 ---
 
-## 7. 非機能要件
+## 8. 非機能要件
 
 ### NFR-01 正確性
 
-- すべてのChunkでchecksumを検証できる。
-- 順序違反、欠落、重複を検出する。
-- 実LLM統合後は同一seed・設定で基準実装との出力／logit差を評価する。
+- Chunk checksum一致率100%
+- 欠落0、重複0、順序違反0
+- 実LLM出力を基準経路と比較する
+- 正確性基準を満たさないRunは性能比較から除外する
 
 ### NFR-02 再現性
 
-- 乱数seed、commit、モデルdigest、環境、設定を保存する。
-- ベンチマークはwarm-up後に最低5回実施する。
-- 平均だけでなく中央値と分位点を報告する。
+- 同一model digest、config、seed、prompt、Runtime versionを保存する
+- 反復Runを個別保存し、代表値だけに潰さない
+- cold／warm、prefill／decodeを分離する
 
-### NFR-03 安全性
+### NFR-03 観測可能性
 
-- モデル重みをGitへ追加しない。
-- 実機の既存モデルやOllama blobを変更しない。
-- システム全体を不安定にするほどPinned Memoryを確保しない。
-- OOM時は明示的に停止し、部分成果と原因を保存する。
+- wall timeと仮想時間を混同しない
+- preparation、I/O、queue wait、backend wait、computeを分離する
+- resident、staged、mapped、paged、swappedの可能な範囲を区別する
+- M5で取得不能な情報を推測値で補わない
 
-### NFR-04 移植性
+### NFR-04 安全性
 
-- コアロジックをGPU APIから分離する。
-- M5のsimulation backendとCUDA backendが同一scheduler interfaceを使う。
-- プラットフォーム固有コードを`backends/`へ隔離する。
+- モデルファイルは読み取り専用
+- メモリ予算超過は起動前または明示エラーで停止
+- hang時にEvidenceを残して終了可能
+- model download、変換、削除はMissionの明示範囲外では行わない
 
-### NFR-05 観測可能性
+### NFR-05 移植性
 
-- ホットパスの各待ち時間を区分して計測する。
-- 計測自体のオーバーヘッドを測り、無計測Runと比較する。
-- エラー時も最後の状態遷移を追跡できる。
+- コアロジックをMetal／CUDA APIから分離する
+- Platform Backend以外にプラットフォーム固有分岐を拡散させない
+- 同じテストベクトルをM5／Simulator／RTXで再利用可能にする
 
----
+### NFR-06 テスト階層
 
-## 8. 基本アーキテクチャ
+テストは次の層を分離し、下位層のPASSを上位層の証拠に読み替えない。
 
-```text
-Model File / Ollama Blob
-          │
-          ▼
-┌────────────────────┐
-│ Model Inspector    │─→ tensor_manifest.json
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Chunk Planner      │─→ chunk_plan.json
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Host Store         │ mmap/read/pinned slabs
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐     telemetry
-│ Adaptive Scheduler │──────────────────┐
-└─────────┬──────────┘                  │
-          ▼                             ▼
-┌────────────────────┐         ┌────────────────┐
-│ Ready Queue        │         │ Metrics Writer │
-└─────────┬──────────┘         └────────────────┘
-          ▼
-┌────────────────────┐
-│ Transfer Backend   │ simulator / CUDA H2D
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Device Ring Buffer │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Consumer / Executor│ synthetic / kernel / LLM
-└────────────────────┘
-```
+| 層 | 必須内容 | 認定しないもの |
+|---|---|---|
+| Unit | range、alignment、checksum、state transition、budget arithmetic | Runtime統合、実推論 |
+| Component | Inspector、Planner、Queue、Ring、Telemetry単体 | end-to-end正確性 |
+| Simulator Integration | jitter、帯域不足、cancel、timeout、fault injection | 実I/O、実GPU、実token/s |
+| M5 Real Integration | 実モデル、実Executor、実token生成、memory pressure | CUDA／PCIe性能 |
+| RTX Synthetic | 実H2D、consumer kernel、overlap、VRAM pressure | 実LLM正確性 |
+| RTX Real Inference | 実モデル、正確性、既存方式比較、長時間運転 | 未試験規模への一般化 |
 
-### 8.1 スレッド／責務
+テストソースの存在は実行結果ではない。実行ログとEvidence Packが無いテストは `NOT_EXECUTED` とする。
 
-| 実行単位 | 責務 |
-|---|---|
-| Inspector | モデル解析。Run開始前に完了させる。 |
-| Planner | Chunk計画の生成。初期版はRun開始前に完了。 |
-| Producer | Host Storeから空slotへデータを準備。 |
-| Scheduler | 次の転送と適応制御を決定。 |
-| Transfer | H2D発行と完了イベント管理。 |
-| Consumer | Chunkを使用し、完了イベントを通知。 |
-| Telemetry | 非同期にログを永続化。ホットパスを塞がない。 |
+### NFR-07 Stress / Fault Injection
 
-初期版で無理に全処理を別スレッド化しない。まず状態機械の正しさを優先し、プロファイル結果に基づいて分離する。
+- Queue depth最小／最大
+- Ring wrap-around
+- 準備遅延、帯域jitter、一時停止
+- consumer停止、producer停止
+- I/O短読、checksum不一致、未対応tensor
+- cancellation、timeout、graceful shutdown
+- memory budget境界直下／直上
+- 長時間運転とresource leak
 
-### 8.2 Buffer Slot
+障害注入に対して、silently continue、偽の成功summary、欠落Chunkの補間を禁止する。
 
-```text
-slot_id
-generation
-state
-host_ptr
-device_ptr
-capacity
-payload_bytes
-chunk_id
-source_offset
-checksum
-copy_event
-compute_event
-```
+### NFR-08 Evidenceの不変性
 
-### 8.3 Schedulerの初期制御則
+- Run成果物を事後に上書きせず、新しいRun IDで再実行する。
+- 文書訂正は元のClaim／値を消去せず、amendmentと理由を記録する。
+- hash一致が同一Pack内で閉じている場合、外部真正性の証明とは呼ばない。
+- 実行者の自己検証と独立監査を区別する。
+- 実装担当の状態は `COMPLETED_NOT_AUDITED` までとし、GREENを自己発行しない。
 
-初期版は以下の単純なヒューリスティックとする。
+### NFR-09 Scope Control
 
-```text
-if starvation_detected:
-    prefetch_depth += 1
-    chunk_size = next_lower_size(chunk_size)
-elif p95_copy_time < 0.5 * p50_compute_time and queue_is_stable:
-    chunk_size = next_higher_size(chunk_size)
-elif pinned_memory_pressure or vram_pressure:
-    prefetch_depth -= 1
-else:
-    keep
-```
-
-最適化前に、各変更が本当に待機を減らしたかをA/Bで検証する。GPU使用率だけを目的関数にせず、end-to-end throughputと正確性を最優先する。
+- 1 Gate = 1 Missionを原則とする。
+- Mission外のモデル取得、Runtime改造、Adaptive実装、規模拡張を行わない。
+- 便利機能や追加最適化を無断追加しない。
+- 要件の削除・延期・モデル固定・受入緩和はscope逸脱として停止する。
+- 実装中に別の必要作業を発見した場合は、実装せずOPEN事項として報告する。
 
 ---
 
-## 9. 技術構成
+## 9. Gate構成
 
-### 9.1 推奨言語
+### Gate RQ0 — Requirements Rebaseline
 
-- コア／CUDA統合: C++20
-- ビルド: CMake
-- CUDA backend: CUDA C++
-- 解析、集計、グラフ: Python 3.11+
-- テスト: Catch2またはGoogleTest（依存を固定）
-- 実験設定: JSON
-- ログ: JSONL + CSV + Markdown
+目的: 原要求を復元し、無断縮約を排除する。
 
-理由は、最終的にllama.cpp系のC/C++経路とCUDAへ接続するためである。Pythonだけでスケジューラの概念実証を終わらせず、ホットパスの実装へ移行可能な構造にする。
+GREEN条件:
 
-### 9.2 予定リポジトリ構成
+- ユーザー要求にIDが付いている
+- 現行文書との差分が列挙されている
+- 未決事項を推測で埋めていない
+- ユーザーが本書を正本として承認した
 
-```text
-ALSR-PoC/
-├── README.md
-├── LICENSE
-├── CMakeLists.txt
-├── .gitignore
-├── docs/
-│   ├── ALSR_REQ_DESIGN.md
-│   ├── DECISIONS.md
-│   └── EXPERIMENTS.md
-├── include/alsr/
-├── src/
-│   ├── inspector/
-│   ├── planner/
-│   ├── scheduler/
-│   ├── buffer/
-│   ├── telemetry/
-│   └── cli/
-├── backends/
-│   ├── simulator/
-│   └── cuda/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── stress/
-├── tools/
-│   ├── analyze_results.py
-│   └── make_report.py
-├── configs/
-├── scripts/
-├── results/
-└── third_party/
-```
+### Gate P0 — Prior Art / Integration Feasibility
 
-### 9.3 llama.cpp統合方針
+目的: 既存Runtimeの実データ経路と統合点を確認する。
 
-1. 最初は外部依存なしのSynthetic Consumerを作る。
-2. 次にCUDA micro-kernelでcopy/compute重複を測る。
-3. llama.cppの固定GPUレイヤーオフロードを比較基準として取得する。
-4. 既存APIだけで必要なレイヤー交換ができない場合は、固定commitのforkまたは小さなpatchとして統合する。
-5. Ollamaは基準値取得とモデル管理に使用し、初期PoCで本体へ直接改造を入れない。
+対象:
 
----
+- llama.cpp／Ollamaのmodel loading、mmap、offload、Metal、CUDA経路
+- tensor execution orderを裏付ける箇所
+- weight供給を差し替え可能な境界
+- 既存prefetch／async copy／buffer管理
+- 出力正確性比較方法
 
-## 10. 比較対象
+GREEN条件:
 
-すべて同じモデル、量子形式、context、prompt、seed、生成長で比較する。
+- ALSRが置換・追加する境界をソース根拠付きで特定
+- M5実LLM Adapterの実装可能性を確認
+- 既存方式との差分仮説と撤退条件を固定
 
-| ID | 方式 |
-|---|---|
-| B0 | CPU-onlyまたはGPU offloadなし |
-| B1 | llama.cpp/Ollama標準の最良設定 |
-| B2 | 固定GPUレイヤー数 |
-| B3 | Pageable Memory + 同期copy |
-| B4 | Pinned Memory + 同期copy |
-| B5 | Pinned Memory + 非同期copy + 固定Chunk |
-| A1 | ALSR固定Chunk + Ring Buffer |
-| A2 | ALSR可変Chunk + 適応Scheduler |
+### Gate M0 — M5 Baseline
 
-標準実装の最良値を恣意的に弱く設定してはならない。
+目的: 12B基準経路と環境を固定する。
 
----
+GREEN条件:
 
-## 11. 実験計画
+- 同一条件で5回以上完走
+- 生レスポンス保存
+- model digest、Runtime、OS、Context、prompt、生成長、cold／warmを保存
+- 正確性と中央値を算出
 
-### Phase 0: 基準値と環境固定
+### Gate M1 — Inspector / Manifest / Chunk Integrity
 
-- M5上の`gemma4:12b`基準値を同一スクリプトで再取得する。
-- model digest、Ollama版、macOS、context、生成長を保存する。
-- RTX機のハードウェア、Driver、CUDA、PCIe linkを採取する。
-- RAM、Pageable H2D、Pinned H2Dの帯域を測る。
+目的: 実モデルから実行可能なデータ計画を生成する。
+
+GREEN条件:
+
+- byte rangeの重複／欠落が説明可能
+- Manifestが決定論的
+- Execution orderの根拠が存在
+- Chunk完全性100%
+
+### Gate M2 — M5 Real Executor Integration
+
+目的: 12B基準モデルでALSR経路を実LLMへ接続する。
+
+GREEN条件:
+
+- Simulatorではなく実LLM ExecutorがALSR供給データを使用
+- Model Storeが要求rangeを明示的に読み、Preparation、Ready Queue、有限Ring、Backend、Executorの順に実データが通る
+- Runtimeの既存mmap tensor pointerを観測・検査するだけのhookや、既存backend copyの追認をALSR供給と数えない
+- promptからtoken生成まで完走
+- 正確性基準を満たす
+- Chunk／Queue／Buffer traceが実行と対応
+- Executorの別経路全量ロードがないことを確認
+
+### Gate M3 — Memory-Pressure Real Inference（旧M5配置、RTXへ移設）
+
+状態: `RELOCATED_TO_R3_BY_UR-014 / NOT_RUN`
+
+旧目的: 16GB制約を実質的に超える実モデルでALSR構造を検証する。UR-014後はこの受入意図をWindows RTX側R3Bで実施し、M5では実行しない。
+
+初回対象: Gemma 4 31B。変更にはユーザー裁定を要する。
+
+GREEN条件:
+
+- 少なくとも1つの実モデルでtoken生成まで完走
+- 実model bytes、量子形式、Context、最大メモリ、I/O、paging／swap観測を保存
+- OOM、deadlock、integrity failureなし
+- ALSR経路とOS任せのpaging baselineを区別
+- 反復可能、または不成立原因を証拠付きで確定
+
+### Gate M4 — Scale Envelope（旧M5配置、RTXへ移設）
+
+状態: `RELOCATED_TO_R3_AND_S0_BY_UR-014 / NOT_RUN`
+
+旧目的: M5上の成立境界をモデル規模・量子化・Contextで測る。UR-014後はWindows RTX側R3B／S0で測定し、M5では実行しない。
 
 成果物:
 
-```text
-environment.json
-baseline_m5.json
-baseline_rtx.json
-bandwidth_report.md
-```
+- operational frontier
+- correctness frontier
+- sustained-throughput frontier
+- failure taxonomy
 
-### Phase 1: Model Inspector
+単一31B Runだけで完了しない。
 
-- Ollama blobまたはGGUFを発見する。
-- 読み取り専用でmanifestを生成する。
-- 総byte数とファイルサイズの整合性を検証する。
-- 代表テンソルのoffsetとchecksumを確認する。
+### Gate X0 — Cross-platform Core Freeze
 
-合格条件:
+目的: M5で確認したコア契約をRTX移植前に固定する。
 
-- 解析対象byte範囲の重複／欠落が説明可能。
-- 同じモデルでmanifestが決定論的。
-- 未対応形式を明示エラーにできる。
+GREEN条件:
 
-### Phase 2: M5 Chunk Simulator
+- 共通interfaceとschema固定
+- M5 Evidenceと同じ意味でRTX Evidenceを生成可能
+- Backend交換以外の無断再設計なし
 
-- 64～1024MiB固定Chunkを比較する。
-- bandwidth 5～28GB/s、jitter 0～20%を注入する。
-- buffer depth 2、3、4、8を比較する。
-- 固定Schedulerと適応Schedulerを比較する。
+### Gate R0 — RTX Environment
 
-目的はキューと制御則の検証であり、CUDA性能の予測ではない。
+目的: 実機構成を取得し仮定値を排除する。
 
-### Phase 3: RTX H2D / CUDA Microbenchmark
+### Gate R1 — CUDA Transfer Microbenchmark
 
-- Pageable vs Pinned
-- Sync vs Async
-- Stream 1、2、3、4
-- Chunk 16、32、64、128、256、512、1024MiB
-- copy only / compute only / overlap
-- VRAM圧迫なし／あり
+目的: Pageable／Pinned、Sync／Async、Stream、Chunk、copy／computeを実測する。
 
-`cudaEvent`と壁時計の両方を保存する。
+### Gate R2 — RTX Synthetic Streaming Runtime
 
-### Phase 4: Synthetic Streaming Runtime
+目的: 実ChunkをCUDA Backendへ供給し、consumer kernelで順序・完全性・overlapを確認する。
 
-- 実モデルChunkをH2Dへ送り、consumer kernelで内容を使用する。
-- checksum、順序、枯渇、オーバーラップを測る。
-- 10分の定常運転を実施する。
-- schedulerの適応が振動しないか確認する。
+### Gate R3 — RTX Real LLM Integration
 
-### Phase 5: 実LLM経路
+目的: VRAM超過実モデルをALSR経路で実推論し、既存方式と比較する。
 
-- Gemma 4 12Bと互換な実行経路を選定する。
-- まず通常推論のlogit／出力を固定する。
-- 既存の固定offloadを基準にする。
-- ALSR経路を段階的に接続する。
-- 正確性が確認できるまで性能値を正式採用しない。
+### Gate S0 — Scale Research
 
-### Phase 6: 規模拡張
+目的: 20〜31B、70B、120B、Llama 3.1 405Bを含む405B級へ段階的に拡張し、成立領域または不成立境界を確定する。
 
-順序は次とする。
-
-```text
-12B（機構検証）
-  ↓
-31B前後（VRAM超過の実用検証）
-  ↓
-70B（96GB RAM内のDense検証）
-  ↓
-120B級（MoEとDenseを分離）
-  ↓
-405B（原則は数理外挿。実ファイル試験は別承認）
-```
+各Gateは前Gateの成果物を消費するが、前GateのGREENを別種のGREENへ読み替えない。
 
 ---
 
-## 12. 受入基準
+## 10. Run判定体系
 
-### 12.1 必須ゲート
+| 判定 | 意味 |
+|---|---|
+| `COMPONENT_VALID` | 単一構成要素の正当性を確認 |
+| `SIMULATOR_VALID` | 仮想条件に対する論理挙動を確認 |
+| `REAL_INFERENCE_VALID` | 実モデル・実Executorで正確なtoken生成を確認 |
+| `SUSTAINED_VALID` | 指定時間／生成長で安定運転を確認 |
+| `RESEARCH_BOUNDARY_FOUND` | 成立または不成立境界をEvidence付きで確定 |
+| `PRODUCT_CANDIDATE` | 正確性・速度・安定性・運用性を満たす候補 |
 
-以下の1つでも失敗したRunは性能比較から除外する。
+下位判定を上位判定として報告しない。
 
-- checksum一致率100%
-- Chunk欠落0
-- Chunk重複0
-- 順序違反0
-- unhandled error 0
-- 出力正確性が基準内
-- environmentと設定が保存済み
+### 10.1 M5 Real Inference必須証拠
 
-### 12.2 GREEN
+- 実際に使用したmodel digestとweight bytes
+- prompt、token列、生Runtime出力
+- ALSR path trace
+- Chunk consumption trace
+- memory / I/O telemetry
+- correctness comparison
+- failure／warning全文
+- Run全体のSHA-256一覧
 
-機構PoCをGREENとする条件:
+### 10.2 性能Claim
 
-- 10分定常運転で進行性のqueue starvationがない。
-- GPU待機率p95が5%未満、または比較対象から50%以上減少する。
-- 実効H2Dが同一条件のmicrobenchmark上限の90%以上。
-- end-to-end throughputが最良互換baselineより20%以上高い。
-- 最大RAM/VRAMが設定上限内。
-- 5回以上のRunで傾向が再現する。
-
-### 12.3 YELLOW
-
-- 正確性は満たすが改善が0～20%。
-- 待機率5～20%。
-- 特定Chunkや特定先読み距離でのみ改善。
-- 効果はあるがメモリ量、複雑性、安定性のコストが高い。
-
-YELLOWは追加実験対象とする。
-
-### 12.4 RED
-
-- データ破損、欠落、順序違反、デッドロック。
-- 平均供給帯域不足による進行性の枯渇。
-- 最良baselineより10%以上遅い状態が再現。
-- Pinned MemoryやVRAMの圧迫でOS／Driverが不安定。
-- 物理上限から目標token/sが不可能。
-
-REDは失敗の隠蔽ではなく、成立しない領域を確定した正式成果として記録する。
-
----
-
-## 13. テスト要件
-
-### 13.1 Unit Test
-
-- GGUFヘッダ境界
-- overflow / short read
-- tensor alignment
-- 量子ブロック境界
-- Chunk分割の完全被覆
-- checksum
-- slot状態遷移
-- scheduler上下限
-- JSON schema
-
-### 13.2 Integration Test
-
-- Inspector → Planner → Host Store
-- Producer → Queue → Transfer → Consumer
-- キャンセル
-- timeout
-- OOM模擬
-- corrupted model模擬
-- telemetry writer遅延
-
-### 13.3 Stress Test
-
-- 10分、1時間
-- jitter 20%
-- 一時停止100ms～1s
-- buffer depth 2～16
-- 小Chunk大量投入
-- wrap-aroundを多数回発生
-- telemetry on/off比較
-
-### 13.4 実LLM正確性
-
-- 固定prompt set
-- temperature 0
-- 固定seed
-- 同一context
-- 同一生成上限
-- token列またはlogit差
-- perplexity差（可能なら）
-
----
-
-## 14. リスクと対策
-
-| リスク | 影響 | 対策 |
-|---|---|---|
-| 平均PCIe帯域が不足 | 定常状態で必ずGPUが待つ | 実装前に式とmicrobenchmarkで上限判定 |
-| M5結果の過大解釈 | CUDAで再現しない | MetalとCUDAの合否を完全分離 |
-| Mixed DIMMの帯域低下 | 想定より供給が遅い | 実測値のみ採用 |
-| 2 GPUでx8/x8 | GPUごとのH2D上限低下 | topologyとcurrent link widthをRunごとに保存 |
-| Pinned Memory過多 | OS性能悪化 | 上限、pool化、明示解放 |
-| 細かすぎるChunk | 発行・同期オーバーヘッド増 | 16MiBから1GiBまでスイープ |
-| 大きすぎるChunk | 待機とVRAM浪費 | 適応制御、VRAM watermarks |
-| Scheduler振動 | 性能不安定 | hysteresis、変更間隔、A/Bログ |
-| GGUF内部形式差 | 誤分割 | 量子ブロックとalignmentを検証 |
-| llama.cpp内部変更 | patchが壊れる | commit pin、薄いadapter、CI |
-| モデル出力劣化 | 性能値が無意味 | 正確性ゲートを性能より先に判定 |
-| 計測オーバーヘッド | 結果が歪む | telemetry on/off比較 |
-| 巨大モデル取得 | ストレージ・時間浪費 | 数理外挿後に別承認 |
-
----
-
-## 15. 担当モデルの選定
-
-### 15.1 選定結果
-
-| 役割 | 担当 | 理由 |
-|---|---|---|
-| 主実装 | Claude Code + Claude Sonnet 5 | 長時間のagentic coding、ツール利用、実装コストのバランス |
-| 難所の設計・監査 | Claude Fable 5 | 複雑な長期推論、未知のツール、研究判断。常用せずゲート式で利用 |
-| 代替難所担当 | Claude Opus（利用可能な最新alias） | Fable制限時、または保守的な実装監査 |
-| 軽作業補助 | Gemini Flash（ユーザー環境で利用可能な版） | ログ整形、表作成、独立した低リスク作業のみ |
-| 最終監査 | 人間 + 必要時のみCodex | ユーザー申告でCodex週間残量8%のため常用しない |
-
-### 15.2 モデル名の扱い
-
-2026-08-02時点で、公開一次情報からClaude Sonnet 5、Fable 5、Opus 4.8を確認した。ユーザー環境で「Opus 5」が表示される場合でも、CLIに未確認のmodel IDを固定しない。
-
-- Sonnet 5はAPI名`claude-sonnet-5`が公式に公開されている。
-- Fable 5は`claude-fable-5`が公開されているが、利用枠・セーフガードによるフォールバックを考慮する。
-- OpusはClaude Codeの`opus` aliasまたは実機で確認した正式IDを使う。
-- モデルIDと選択結果は各Missionログへ残す。
-
-### 15.3 エスカレーション条件
-
-Sonnet 5からFable 5またはOpusへ上げる条件:
-
-- 同じ失敗を2回修正しても再現する。
-- race、deadlock、memory corruptionの原因が局所化できない。
-- llama.cppの改造範囲が3モジュール以上へ広がる。
-- 数理モデルと実測が20%以上乖離し、原因仮説が複数残る。
-- GREEN/YELLOW/REDの判定に研究上の判断が必要。
-
-上位モデルへ丸ごと投げ直さず、失敗ログ、diff、最小再現、未解決質問を渡す。
-
----
-
-## 16. Git・ログ・証拠管理
-
-### 16.1 Branch / Commit
-
-- `main`: 再現済みGREENまたは承認済みYELLOWのみ。
-- `phase/*`: Phase単位。
-- `experiment/*`: 一時実験。結果採用時は文書化して整理。
-- 1 commit = 1つの検証可能な変更。
-- commit messageへRun IDを含める。
-
-### 16.2 Gitへ入れないもの
-
-```gitignore
-*.gguf
-*.safetensors
-*.bin
-models/
-ollama-blobs/
-results/**/raw-model-data/
-build/
-```
-
-### 16.3 Decision Record
-
-重要判断は`docs/DECISIONS.md`へ以下の形式で残す。
+全性能Claimは次の鎖を持つ。
 
 ```text
-ID / 日付
-状況
-選択肢
-決定
-根拠
-反証条件
-関連Run ID
+Value
+  ↓
+Provenance
+  ↓
+Evidence
+  ↓
+Scope
+  ↓
+Gate
 ```
 
-### 16.4 結果の改変防止
-
-- raw metricsは追記専用。
-- 集計スクリプトのcommitを記録。
-- summaryにはraw metricsのSHA-256を記録。
-- 手作業で数値を書き換えない。
+1つでも欠けるClaimは正式採用しない。
 
 ---
 
-## 17. Claude Codeへ渡す初回Mission
+## 11. 比較対象
 
-以下をそのままClaude Codeへ渡せる。
+ALSRは最低限次と比較する。
+
+- 通常Runtime／通常Ollama経路
+- OS管理mmap／paging経路
+- llama.cpp CPU／GPU offload
+- 固定offload
+- ALSR固定Scheduler
+- ALSR Adaptive Scheduler（独立Gate通過後）
+
+比較条件はmodel digest、量子形式、Context、prompt、生成長、正確性基準を揃える。
+
+---
+
+## 12. 失敗と撤退条件
+
+次の場合は成功へ見せかけず、研究結果として記録する。
+
+- 実LLM Executorへ安全なweight供給境界を作れない
+- 既存Runtimeが同等以上のprefetch／overlapを既に実装している
+- ALSR経路の正確性を維持できない
+- 平均供給帯域不足が支配し、Schedulerで改善できない
+- metadata／依存関係により安全な先読みができない
+- メモリ節約量に対して速度低下が実用上大きすぎる
+- 既存方式に対する改善が測定誤差内
+
+撤退はプロジェクト失敗ではなく、適用領域の確定である。
+
+---
+
+## 13. Requirement Traceability
+
+| User Requirement | Design | Gate | Required Evidence |
+|---|---|---|---|
+| UR-001 / 継続供給 | FR-05〜FR-09 | M2 / M3 / R2 / R3 | queue、buffer、consumer trace |
+| UR-002 / 事前解析 | FR-01〜FR-03 | P0 / M1 | model・execution manifest |
+| UR-003 / Chunk準備 | FR-04〜FR-07 | M1〜M3 / R2 | chunk plan、state transitions |
+| UR-004 / 少ないVRAM | §3 / §4 | R3 / S0 | memory budget、scale envelope |
+| UR-005 / 31B限定禁止 | §4.1 | S0 | 複数規模のRunまたは境界表 |
+| UR-006 / Llama 3.1 405Bを含む405B級まで | §4 / S0 | S0 | 実測拘束されたscale report |
+| UR-007 / M5先行実動 | FR-09 | M2（M3はUR-014で移設） | real inference Evidence Pack |
+| UR-008 / PCIe非依存 | §3.1 / §6.2 | M0〜M2 | MEASURED_M5とscope |
+| UR-009 / RTX組替え | §6.1 | X0 / R0〜R3 | interface conformance |
+| UR-010 / Provenance | FR-10 | 全Gate | metric provenance |
+| UR-011 / 不成立も成果 | §12 | M4 / S0 | failure taxonomy |
+| UR-012 / 縮約禁止 | §0 | RQ0 | requirements diff、承認記録 |
+| UR-013 / Gemma 4 31B実推論 | §4.1 / FR-09 | R3（UR-014によりM3から移設） | real inference Evidence Pack |
+| UR-014 / M5凍結・RTX移行 | §3 / §9 | X0 / R0〜R3 | freeze checkpoint、Windows環境証拠、RTX Evidence Pack |
+
+---
+
+## 14. 現行Rev.1.1／Rev.02からの主要是正
+
+| 旧状態 | Rev.3正本での是正 |
+|---|---|
+| M5 Phaseを解析・Simulatorで完了可能 | M5 Real Executor IntegrationとMemory-Pressure Real Inferenceを必須化 |
+| RTXより後に実LLM接続 | M5で実LLM接続後にCross-platform Coreを固定しRTXへ移行 |
+| 31BをVRAM超過代表として実質固定 | モデル規模は測定点。RTX scale envelopeとScale Researchを追加 |
+| 70B／120Bを後段へ延期 | 研究範囲に維持し、Gate条件で段階化 |
+| 405Bは原則外挿 | 実測拘束された裁定を必須化。実ファイル試験の可否はユーザーGate |
+| SSD→RAM→VRAMを初期PoC外 | Model Storeを抽象化し、M2でI/O経路を実証。VRAM経路はRTX R2／R3で観測 |
+| Simulator GREENと機構PoC GREENが混在 | 判定体系をComponent／Simulator／Real Inference／Sustained／Researchへ分離 |
+| 12Bの正常推論を中心化 | 12Bは基準・回帰のみ。制約超過実モデルをM5 Gateへ追加 |
+
+---
+
+## 15. OPEN事項とP0決定
+
+| ID | 事項 | 状態 | 決定Gate |
+|---|---|---|---|
+| O-01 | M5でOS paging／swapを基準方式として許容する範囲 | `DECIDED_P0` | P0 |
+| O-02 | M5で明示的Storage I/O制御まで実装するか | `DECIDED_P0` | P0 / M1 |
+| O-03 | M5 acceptanceの生成長・反復数・最大時間 | `DECIDED_P0` | P0 |
+| O-04 | 出力正当性の主基準（logit／perplexity／token列） | `DECIDED_P0` | P0 |
+| O-05 | 405B実ファイル取得・実Runの条件 | `OPEN` | S0前ユーザーGate |
+| O-06 | MoE研究の開始条件 | `OPEN` | Dense scale結果後 |
+| O-07 | 圧縮転送／GPU展開をALSR本体へ含めるか | `OPEN` | R3後 |
+
+OPEN事項は未実装扱いではない。決定Gateより前にAIが値や方式を固定してはならない。
+
+### 15.1 P0ユーザー決定記録 — 2026-08-03 JST
+
+ユーザーは、現行状態 `Real inference = False` を `Real inference = True` にすることを前提として、P0提案のO-01〜O-04をすべて承認した。この前提は受入緩和ではなく、M2の達成目的そのものである。Simulator完走、もっともらしい出力、Ollamaの別経路推論を `True` と数えてはならない。
+
+#### O-01 — OS paging／swap
+
+- 通常OS mmap／pagingを必須比較baselineとして許可する。
+- paging／swapの成功だけをALSR Schedulerがweightを供給した証拠にしない。
+- page fault（取得可能な範囲）、compressed memory、swap、Storage I/O、物理memory pressureを分離記録する。
+
+#### O-02 — 明示的Storage I/O
+
+- 通常mmap／pagingは比較baselineとして許可するが、それだけをALSR供給経路として認定しない。
+- M2から明示的range-I/O ALSR modeを必須とする。Model Storeが取得したbytesをPreparation、Ready Queue、有限Ring経由でbackend copyの実sourceにし、既存Runtime sourceへのfallbackは0でなければならない。
+- 当初M3で予定したGemma 4 31Bへの適用は、UR-014によりRTX R3Bへ移設した。R3BでもM2と同じ明示的range-I/O構造を維持し、OS mmap／paging controlと比較する。アーキテクチャ実装をR3Bへ先送りしない。
+- mmapと明示I/Oのどちらが速いかは事前決定せず実測する。
+
+#### O-03 — M5 acceptance（UR-014前の決定記録）
+
+M0／M2の条件は実施済み。M3行は未実行のままRTX R3Bへ移設されており、M5で再開しない。
+
+| Gate | new tokens | repeats | 最大wall time | 目的 |
+|---|---:|---:|---:|---|
+| M0 通常12B | 128 | cold 5 + warm 5 | 30分／Run | baselineと分散 |
+| M2 ALSR 12B | 128 | 5 | 30分／Run | 正確性と実統合 |
+| M3 Gemma 4 31B | 128 | 3 | 60分／Run | `NOT_RUN / RELOCATED_TO_R3B` |
+
+timeoutはfailure／boundaryとして保存し、結果を見た後に生成長を短縮して合格へ変更しない。この原則は移設先R3B／S0でも維持する。
+
+#### O-04 — 出力正当性
+
+- 同一model digest、tokenizer、prompt、Context、seed、決定論的greedy samplingを比較条件とする。
+- acceptance生成長についてtoken ID列の完全一致を主基準とする。
+- 各stepのtop logitsを診断用に保存する。
+- logit数値toleranceはALSR比較前にbaseline自体の再現性から固定し、結果を見て変更しない。
+- 不一致Runを性能Claimから除外する。
+- perplexityは後続のscale／regression副基準とし、M2の唯一の正当性基準にはしない。
+
+### 15.2 M0 baseline固定記録 — 2026-08-03 JST
+
+`ALSR-M0-M5-BASELINE-01` は、M5 16GiB上の通常Ollama `gemma4:12b`経路でcold 5回、warm 5回を完走し、Gate M0をGREENとした。
+
+- 10/10 RunでHTTP 200、128 token生成、選択token text／byte列の完全一致を確認した。
+- Ollama APIの`response.context`にpromptと生成suffixの数値token IDが含まれていたため、M0の保存済み応答から72 prompt token＋128 generated tokenを分離し、M2比較baselineとして固定した。token IDを本文から逆推定していない。
+- cold／warm間のselected logprob最大絶対差は`0.009411484003067017`、同一top-20候補の最大絶対差は`0.03801250457763672`だった。
+- 後続ALSR比較の診断用logprob絶対toleranceを、結果を見る前のbaseline値として`0.05`に固定する。主基準はtoken列完全一致であり、toleranceはtoken不一致を許容しない。
+- coldはOllama process上のunload状態であり、OS page-cache coldではない。
+- 最初のcold Runでsystem-wide swap-out約4.15GBを観測した。これはOllama単独への帰属でもALSR成功証拠でもなく、M2および移設先R3BでOS pagingとALSR制御供給を分離する根拠である。
+- `ordinary Ollama real inference = true`を確認したが、`ALSR Real Executor inference = false`は未変更である。後者をtrueにするGateはM2である。
+
+証拠正本は `results/m0-gemma4-12b-ordinary-20260803T080813Z/` とする。
+
+### 15.3 M1実graph Manifest固定記録 — 2026-08-03 JST
+
+`ALSR-M1-REAL-GRAPH-MANIFEST-01` は、commit-pinned llama.cppの実scheduler graph callbackとGemma 4 12B実modelを用いて、prefill／decodeの実weight需要順と完全なGGUF byte-range計画を固定し、Gate M1をGREENとした。
+
+- Runtimeはllama.cpp tag `b10091`、commit `b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45`へ固定した。
+- model SHA-256は`1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606`、実weight bytesは`7,365,558,464`である。
+- 同一promptから2回取得したschema v2 traceはSHA-256 `ba25e7cf7482df7c1892c7ea6d08417b7b6dc1b7ea22be13e3a2081cba9f60ce`でバイト一致した。
+- prefillは61 input tokens／1,970 graph nodes、graph signature `393328c730a6beca759a2dcebe6c91f8d68049872ac2607900850a0618791886`、decodeは1 input token／1,970 graph nodes、graph signature `652756ee7ab3140c28778097d0f05d719f0d4e066bfac691a298f33e2bd0a9c3`である。
+- GGUF source tensorは667件、Runtime tensor instanceは668件である。同名の`token_embd.weight` 2実体を別destinationとして保持し、両phaseで両実体の使用を確認した。
+- storage planは718 Chunk、GGUF data領域`7,365,559,808` byteを、tensor `7,365,558,464` byte＋padding `1,344` byteとして欠落・重複なく説明する。使用Runtime実体668/668をGGUF tensor 667/667へ写像し、unmapped useは0である。
+- 全ChunkにSHA-256とCRC32Cを付与した最終Manifestは2回バイト一致し、SHA-256は`c52a0eb47255bfc7f8ba21da99d79e10b57379f6764e5757d962078b45e90f48`、structure SHA-256は`3544cf50fb5e67240387cbad1f90ecb13949761337fd38ae0c8fd616091b40fa`である。
+- schema v1の暫定Run 1〜4は、同名の別Runtime実体を名前だけで縮約する欠陥を検出した過程として保存する。M1受入判定からは除外し、schema v2のRun 5／6のみを正式証拠とする。
+- default buildとM1 pinned buildの双方で107/107 testを完走した。
+- M1は実graph計装とManifest生成の認定であり、ALSR供給経路による推論の認定ではない。`ALSR Real Executor inference = false`は維持し、これをtrueへ変更できるのはGate M2だけである。
+
+証拠正本は `results/m1-real-graph-manifest-20260803T082724Z/` とする。
+
+### 15.4 M2誤判定撤回・修復記録 — 2026-08-04 JST
+
+2026-08-03 JSTに発行した`ALSR-M2-M5-REAL-EXECUTOR-01`のGREEN判定と、そこから導いた`ALSR Real Executor inference = true`を撤回する。保存済みRunのtoken一致やwall timeを否定するものではないが、当該RunはM2が要求する実データ供給経路を実装していなかった。
+
+撤回の直接根拠:
+
+- 全正式Runの`GRAPH_TRACE.json`は`callback_requests_tensor_data: false`を記録している。hookはRuntimeが既にmmapしたtensor dataを観測・照合しただけで、Model Storeへbytesを要求していない。
+- backend copyの実sourceは既存Runtime tensor pointerのままであり、Preparation、Ready Queue、有限Ringから供給されたbytesではなかった。
+- 旧`SupplyController`が記録したlease、checksum、copy eventは既存copyの追認であり、ALSRがそのcopy sourceを提供した証拠ではない。
+- したがって旧Evidence Packが証明する範囲は、pinned llama.cppへのgraph／copy instrumentationとM0出力一致を確認した`INTEGRATION_SPIKE_ONLY`までである。Gate M2のGREEN条件は満たさない。
+
+旧Evidence Pack `results/m2-gemma4-12b-real-executor-20260803T090123Z/` は失敗原因を含む履歴証拠として変更・削除せず保持する。同配下の`M2_RETRACTION.json`を現行判定とし、旧`M2_ACCEPTANCE_SUMMARY.json`および`M2_EVIDENCE_INDEX.json`のGREENは失効済みの自己判定として扱う。
+
+修復版は、HostStoreによる明示range read、checksum Preparation、Ready Queue、固定Scheduler、有限Ring、backendのprepared range request／commitを実装し、Runtime source fallbackを禁止する。短い開発Runの成功をM2 GREENへ昇格させず、128 new tokens × 5 Run、最大1,800秒／Runの正式条件を変更せず再実施する。
+
+### 15.5 M2 Real Supply修復・再認定 — 2026-08-04 JST
+
+`ALSR-M2-M5-REAL-SUPPLY-REPAIR-01`は、旧誤判定を修復し、Gate M2を新EvidenceでGREENへ再認定した。
+
+- HostStoreの明示range read、checksum Preparation、Ready Queue、固定Scheduler、2 slot有限Ring、prepared rangeを実sourceとするMetal backend copy、Executorを接続した。
+- Runtime source fallbackを禁止し、5 Run合計fallback 0を確認した。
+- 128 new tokens × 5独立Runは、M0 generated token ID列128/128とUTF-8本文が全件完全一致した。
+- 各Runは86,912 prepared range、942,791,483,392 byteをModel Storeから読み、同量をbackend weight copyへ供給した。5 Run合計は434,560 range、4,713,957,416,960 byteである。
+- 2 slot Ringの3,041,920状態遷移をmutex内の単調sequenceから再構成し、全lifecycle完結、違法遷移0を確認した。
+- wall timeは最小307.392秒、中央値324.545秒、最大339.959秒で、5/5が1,800秒未満だった。
+- read-only verifierはsummaryの自己申告判定を信用せず、SHA-256、出力、byte会計、bind／commit、Ring sequenceを生Evidenceから導出し、`M2_ACCEPTANCE_VERIFIED: GREEN`を返した。
+
+証拠正本は`results/m2-gemma4-12b-real-supply-repair-20260804T002432Z/`とする。旧Packとsequence導入前の診断Packは正式受入から除外し、削除せず保持する。
+
+この再認定により、12B fixed-path scopeでは`ALSR Real Executor inference = true`である。Gemma 4 31B以上のmemory-pressure実推論、Adaptive効果、性能優位、RTX／CUDAは未証明である。
+
+---
+
+## 16. 次の正式Mission
+
+`ALSR-RQ0-REQ-REBASELINE-01` は2026-08-03 JSTのユーザー承認により完了した。
+`ALSR-P0-RUNTIME-INTEGRATION-AUDIT-01` は一次ソース監査とO-01〜O-04のユーザー承認により完了した。
+`ALSR-M0-M5-BASELINE-01` は通常Ollama 12B baselineのcold 5 + warm 5実測とEvidence固定により完了した。
+`ALSR-M1-REAL-GRAPH-MANIFEST-01` は実graph trace、完全なbyte-range計画、決定論的Manifest、Evidence固定により完了した。
+旧`ALSR-M2-M5-REAL-EXECUTOR-01`のGREEN判定は撤回し、`ALSR-M2-M5-REAL-SUPPLY-REPAIR-01`の新EvidenceでM2を再認定した。
+ユーザー指示UR-014によりM5はM2到達点で凍結し、M3／M4の高負荷検証をRTX側へ移設した。
+次の正式Missionは `ALSR-X0-CORE-FREEZE-WINDOWS-HANDOFF-01` とする。
 
 ```text
-Mission: ALSR PoC Phase 0-2（M5上の解析器・Chunk計画・帯域シミュレータ）
-
 目的:
-Adaptive Layer Streaming Runtimeの最初の実装として、実モデルを変更せず、
-GGUF/Ollama blobの解析、Chunk計画、リングバッファ状態機械、帯域シミュレーション、
-再現可能な証拠出力までを作る。
+M2で実証したModel Store、Preparation、Ready Queue、Scheduler、有限Ring、
+prepared range request／commit、Evidence schemaをGit checkpointとして固定し、
+Windows RTX機でBackendだけをCUDAへ交換して継続できる状態にする。
 
-参照文書:
-docs/ALSR_REQ_DESIGN.md
+許可:
+- source、canonical llama.cpp patch、要件・設計、M2小型判定成果物のcommit
+- Windows／RTX引継ぎ手順、未決事項、禁止事項、Gate順序の文書化
+- portable git bundleの作成
+- Windows機で必要な環境情報の項目定義
 
-重要制約:
-1. M5はCUDA/PCIe検証機ではない。CUDA性能を主張しない。
-2. モデルファイルは読み取り専用。コピー、変換、削除をしない。
-3. 平均供給帯域が平均消費帯域を下回る場合、有限バッファは必ず枯渇する。
-   この条件をテストとレポートに含める。
-4. 既存のOllama環境を変更しない。
-5. モデル重みをGitへ入れない。
-6. 実装とテストを同じMission内で完了する。
-7. 未確認のテンソル形式を推測で処理しない。
+禁止:
+- M5でmodel load、実推論、帯域bench、sustained I/Oを再実行すること
+- model weight、Ollama blob、1.7GB生traceを通常Git objectへ入れること
+- CUDA移植を理由にcore契約や受入条件を無断変更すること
+- ordinary Runtime copyをALSR供給として報告すること
+- R0環境固定前にCUDA性能値を仮定すること
 
-技術:
-- C++20 + CMake
-- Python 3.11+は結果集計だけに使用可
-- JSON/JSONL出力
-- テストフレームワークは1つに固定
-
-実装範囲:
-A. alsr-inspect
-   - 入力GGUFのmetadata/tensor一覧
-   - name/type/shape/offset/bytes/alignment
-   - model digest
-   - manifest.json
-
-B. alsr-plan
-   - 64/128/256/512/1024MiB固定Chunk
-   - tensor/quant-block/alignment境界を尊重
-   - chunk_id/source_offset/bytes/checksum/tensors
-   - plan.json
-
-C. alsr-sim
-   - producer/ready queue/ring buffer/consumer
-   - bandwidth, latency, jitter, consumer rateを設定可能
-   - buffer depth 2/3/4/8
-   - fixed schedulerとadaptive scheduler
-   - starvation、wait、queue depth、throughputをJSONL出力
-
-D. テスト
-   - 完全被覆、欠落なし、重複なし
-   - 状態遷移
-   - wrap-around
-   - cancellation
-   - 定常帯域不足では必ず枯渇すること
-   - 供給帯域十分かつjitterがバッファ余裕内なら枯渇しないこと
-
-E. 文書
-   - README: build/run/test
-   - docs/DECISIONS.md
-   - docs/EXPERIMENTS.md
-   - 既知の制約
-
-完了条件:
-- clean build
-- 全テスト成功
-- sample configで3つのRunを生成
-- 各Runにconfig/environment/metrics/summary/report
-- 同一seedでsummaryが再現
-- git diffを自己レビューし、未完了・推測・TODOを列挙
-
-実装しないもの:
-- CUDA backend
-- llama.cpp改造
-- Ollama改造
-- 405Bモデル取得
-- 独自圧縮
-
-最後に報告する内容:
-- 変更ファイル
-- 実行したコマンド
-- テスト結果
-- sample Run ID
-- 判明した制約
-- Phase 3へ進む前の未解決事項
+成果物:
+- Git checkpoint commit／tag
+- Windows／RTX handoff文書
+- M2小型判定checkpointと生Evidenceの所在・hash
+- Windows側の次Mission `ALSR-R0-RTX-ENVIRONMENT-01` の開始条件
 ```
 
 ---
 
-## 18. Phase 3用Mission概要
+## 17. 状態
 
-M5 PhaseがGREENになり、RTX機が空いた後に実行する。
+本書は2026-08-03 JSTにユーザー承認され、`APPROVED_REQUIREMENTS_BASELINE` として正本化された。
+Gate P0は2026-08-03 JSTに `GREEN` で完了し、O-01〜O-04はユーザー承認により決定済みである。
+Gate M0は2026-08-03 JSTに通常Ollama 12B baselineの実測・証拠固定により `GREEN` で完了した。
+Gate M1は2026-08-03 JSTに実graph由来ManifestとChunk完全性の実測・証拠固定により `GREEN` で完了した。
+Gate M2の2026-08-03 JST付GREENは2026-08-04 JSTに撤回した後、明示range-I/O／finite Ringを実装した新Evidenceの128-token実推論5/5により同日 `GREEN` へ再認定した。12B fixed-path scopeで`ALSR Real Executor inference = true`である。
+2026-08-04 JSTのUR-014によりM5は凍結した。M3／M4は未実行であり、GREENへ読み替えず、31B memory-pressureとscale envelopeをR3／S0へ移設する。
+現在の次GateはX0 Cross-platform Core Freeze、その後はR0 RTX Environmentである。R0前のCUDA性能測定、R3前の実LLM統合、Adaptive実装、S0 scale sweepは未許可である。
 
-```text
-Mission: ALSR PoC Phase 3（RTX 3060 CUDA Transfer Backend）
-
-- 実機情報を自動採取
-- RAM bandwidth benchmark
-- Pageable/Pinned H2D benchmark
-- Sync/Async、Stream 1-4、Chunk 16MiB-1GiB
-- CUDA Event + wall clock
-- copy/compute overlap ratio
-- simulator backendと同じscheduler interface
-- 10分stress test
-- OS/Driver不安定化を避けるPinned Memory上限
-- GREEN/YELLOW/RED判定レポート
-
-実LLM統合はこのMissionに含めない。
-```
-
----
-
-## 19. 実装開始前チェックリスト
-
-- [ ] ALSR専用リポジトリを作成した。
-- [ ] 本書を`docs/ALSR_REQ_DESIGN.md`へ配置した。
-- [ ] M5上の対象GGUF/Ollama blobを読み取り専用で特定した。
-- [ ] 空きストレージを確認した。
-- [ ] モデルdigestを保存した。
-- [ ] Claude CodeでSonnet 5を選択・記録した。
-- [ ] `*.gguf`、blob、resultsの大容量物を`.gitignore`へ追加した。
-- [ ] Phase 0-2以外を初回Missionへ混ぜていない。
-- [ ] RTX機上のNeutron Gate学習が終了するまでRTX作業を開始しない。
-
----
-
-## 20. 未確定事項
-
-以下は実測またはユーザー判断が必要であり、本書で捏造しない。
-
-- RTX検証機のOS
-- RTX 3060の正確なボードメーカー／型番
-- 実機のPCIe current link speed / width
-- 96GB Mixed DIMM構成の実効帯域
-- CUDA Driver / Toolkit版
-- 対象Ollama blobの実ファイルパスとdigest
-- Gemma 4 12Bを実LLM経路で扱えるllama.cpp commit
-- ユーザー環境に表示される「Opus 5」の正式CLI model ID
-- 70B以降で使う具体的モデルと量子形式
-
----
-
-## 21. 公式参照資料
-
-1. Ollama, Gemma 4 model library  
-   https://ollama.com/library/gemma4
-2. MSI, MEG X570 UNIFY Specifications  
-   https://www.msi.com/Motherboard/MEG-X570-UNIFY/Specification
-3. AMD, Ryzen 7 5700X Specifications  
-   https://www.amd.com/en/support/downloads/drivers.html/processors/ryzen/ryzen-5000-series/amd-ryzen-7-5700x.html
-4. NVIDIA, GeForce RTX 3060 announcement/specification  
-   https://nvidianews.nvidia.com/news/nvidia-introduces-geforce-rtx-3060-next-generation-of-the-worlds-most-popular-gpu/
-5. NVIDIA, CUDA Programming Guide — Asynchronous Execution  
-   https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html
-6. NVIDIA, CUDA C++ Best Practices Guide  
-   https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/
-7. Meta, Llama 3.1 / 405B overview  
-   https://ai.meta.com/blog/meta-llama-3-1/
-8. OpenAI, gpt-oss model card  
-   https://deploymentsafety.openai.com/gpt-oss/evaluation
-9. Anthropic, Claude Sonnet 5  
-   https://www.anthropic.com/news/claude-sonnet-5
-10. Anthropic, Claude Fable 5 / Mythos 5  
-    https://www.anthropic.com/news/claude-fable-5-mythos-5
-11. Anthropic, Claude Opus 4.8  
-    https://www.anthropic.com/news/claude-opus-4-8
-12. Claude Code CLI reference  
-    https://docs.anthropic.com/en/docs/claude-code/cli-usage
-
----
-
-## 22. 最終結論
-
-ALSRの核心は「データを細かく送れば速くなる」ことではなく、次の2点を分離して測ることである。
-
-1. 転送と演算を重ね、要求駆動方式に存在する無駄な待機をどこまで消せるか。
-2. 無駄を消した後も残る平均帯域不足によって、どこから先が物理的に成立しないか。
-
-M5では制御系と証拠生成を完成させ、RTX 3060ではPCIeとCUDAの物理を測る。最初の実装対象はGemma 4 12B、段階的な研究ロードマップは31B、70B、120B、405B級とする。
-
-結果がGREENでもREDでも、同じ条件で再現でき、式・ログ・実測値が一致することを最優先とする。
+旧Rev.1.1は `docs/archive/ALSR_REQ_DESIGN_REV1_1.md` に内容を変更せず保存する。
+P0決定前のRev.3.0は `docs/archive/ALSR_REQ_DESIGN_REV3_0.md` に内容を変更せず保存する。
+M0決定前のRev.3.1は `docs/archive/ALSR_REQ_DESIGN_REV3_1.md` に内容を変更せず保存する。
+M1決定前のRev.3.2は `docs/archive/ALSR_REQ_DESIGN_REV3_2.md` に内容を変更せず保存する。
+M2決定前のRev.3.3は `docs/archive/ALSR_REQ_DESIGN_REV3_3.md` に内容を変更せず保存する。
+Recovery成果物はRev.1.1時点の履歴監査資料として扱い、Rev.3への適合証拠へ自動昇格させない。

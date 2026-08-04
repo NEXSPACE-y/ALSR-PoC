@@ -1,4 +1,12 @@
-# 設計書適合監査
+# 設計書適合監査（旧Rev.1.1／Phase 0-2）
+
+状態: `SUPERSEDED / HISTORICAL`
+
+この文書は2026-08-02時点の旧要件Rev.1.1に対する自己監査であり、現行
+`docs/ALSR_REQ_DESIGN.md` Rev.3.7への適合表ではない。本文の「適合」「実測」等を
+現在のGate判定として引用してはならない。A0監査は`docs/recovery/`、現在のM2判定は
+`docs/checkpoints/M2_M5_FREEZE_20260804/`、次の作業順は
+`docs/WINDOWS_RTX_HANDOFF.md`を正とする。
 
 `docs/ALSR_REQ_DESIGN.md` の全条項に対する実装の適合状況。
 **未達・逸脱を隠さないことがこの文書の唯一の目的**である。

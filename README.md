@@ -4,22 +4,38 @@ RAM 上のモデル重みを Chunk に分割し、GPU 演算と RAM→VRAM 転�
 VRAM 容量を超えるモデルの推論にどの程度の実用領域があるかを **測定する** ための
 研究用 PoC。
 
-要件定義・基本設計は [`docs/ALSR_REQ_DESIGN.md`](docs/ALSR_REQ_DESIGN.md)（原文のまま）。
+要件定義・基本設計の正本は [`docs/ALSR_REQ_DESIGN.md`](docs/ALSR_REQ_DESIGN.md)。
 
 **この実装は「成功を演出しない」。成立しない条件を定量的に確定することも正式な
 成果として扱う。** 何を主張してよくて何を主張してはいけないかは
 [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) にまとめてある。
 性能の話をする前に必ず読むこと。
 
-現在の到達点: **Phase 0-2 完了**（M5 上の解析器・Chunk 計画・帯域シミュレータ）。
-CUDA / PCIe は未着手（Phase 3、RTX 3060 機）。
+現在の到達点（2026-08-04）:
 
-設計書の全条項に対する適合状況は [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)
-にある。**未達がある場合はそこに書いてある。**
+- **M2 GREEN** — Gemma 4 12Bの実推論で、Model Storeからの明示range read、
+  Preparation、Queue、固定Scheduler、有限Ring、Backend、llama.cpp Executorまでを接続した。
+- **M5 FROZEN** — M5での高負荷検証は終了。31B、scale、CUDA、PCIe、VRAM検証は
+  Windows／RTX機へ移す。
+- **NEXT: X0 → R0** — Git checkpointを復元後、推測を入れずRTX環境を採取する。
+
+Windowsで作業を再開するときは、最初に
+[`docs/WINDOWS_RTX_HANDOFF.md`](docs/WINDOWS_RTX_HANDOFF.md) と
+[`docs/checkpoints/M2_M5_FREEZE_20260804/CHECKPOINT.md`](docs/checkpoints/M2_M5_FREEZE_20260804/CHECKPOINT.md)
+を読むこと。M2のraw Evidence PackはGit管理外であり、小型判定成果物と期待SHA-256だけを
+checkpointへ保存している。
+
+旧Rev.1.1／Phase 0-2に対する監査履歴は
+[`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)に残すが、現行Rev.3.7への適合表ではない。
+今後のGate判定は要件正本、M2 checkpoint、Windows handoffの受入条件で行う。
 
 ---
 
 ## クイックスタート
+
+以下は開発用の一般手順である。**M5凍結後はM5上でmodel load、実推論、benchmark、
+M2再実行を行わない。** Windows側もR0の環境採取とport境界の確認を終えるまでは、
+この手順を受入試験として実行しない。
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -168,10 +184,10 @@ environment 保存済み。1 つでも失敗した Run は性能比較から除�
 ```text
 ALSR-PoC/
 ├── docs/
-│   ├── ALSR_REQ_DESIGN.md     要件定義・基本設計（原文のまま）
-│   ├── CONFORMANCE.md         設計書適合監査（未達・逸脱を隠さない）
+│   ├── ALSR_REQ_DESIGN.md     現行要件定義・基本設計（Rev.3.7）
+│   ├── CONFORMANCE.md         旧Rev.1.1／Phase 0-2の適合監査履歴
 │   ├── DECISIONS.md           決定記録（反証条件つき）
-│   ├── EXPERIMENTS.md         実験記録（Phase 0-2 の実測値）
+│   ├── EXPERIMENTS.md         旧Phase 0-2記録（A0監査前、引用制限あり）
 │   └── KNOWN_LIMITATIONS.md   何を主張してよくて、何を主張してはいけないか
 ├── include/alsr/              公開ヘッダ（GPU API から独立、NFR-04）
 ├── src/
@@ -194,33 +210,23 @@ ALSR-PoC/
 
 ---
 
-## Phase 0-2 で分かった主なこと
+## 現在証明できていること／いないこと
 
-`docs/EXPERIMENTS.md` に全部書いてある。要点だけ:
+M2の正式判定で証明できているのは、次の限定された事実である。
 
-- `gemma4:12b` の GGUF 解析は**重複 0 / 欠落 0 / 全バイト説明可能**で通った。
-  テンソル 667 個、19 種の名前パターンすべてを分類でき、unknown は 0。
-- **M5 のユニファイドメモリは重み供給に 113〜118 GB/s を出している。**
-  実測 15.35〜15.97 token/s を S_stream 上限 7,365,558,464 B/token で割り戻した値。
-- **PCIe 経由で毎トークン全重みを流す方式は、PCIe 3.0 で 1.63 tok/s、
-  PCIe 4.0 で 3.39 tok/s が転送だけで確定する。** M5 の 1/9〜1/4.5。
-  実装の巧拙では埋まらない。
-- 平均供給帯域が平均消費帯域を下回るとき、**深度 2〜16 のどれでも枯渇する**。
-  適応制御でも消えない。設計書 §2.2 の主張が実測で確認できた。
-- 数理モデル（`T_max = B / S_stream`）とシミュレータの出力が **1% 以内で一致**する。
-- 単一コアの CRC32C（11.77 GB/s）は PCIe 4.0（20〜25 GB/s）より遅い。
-  全 Chunk のホスト側 checksum を線速で回せない。
-- `gemma4:12b` (6.86 GiB) は RTX 3060 の 12 GB VRAM に**収まる**。
-  このモデルで ALSR の優位を語ることはできない。機構検証専用。
-  VRAM 超過領域の検証対象は `gemma4:31b`（テキスト側 18.49 GiB）へ移した。
-- **常駐率が効く。** 31B で常駐 0 → 1.329 tok/s、常駐 10 GB → **2.864 tok/s**（2.16 倍）。
-  ただし GPU 待機率は 91.7% のままで、PCIe 律速という状態は変わらない。
-- **Chunk サイズは PCIe 律速の領域ではほとんど効かない。**
-  64〜512 MiB で token/s の幅は 1.2%。1024 MiB は VRAM 不足で測定不能
-  （大きな Chunk と高い常駐率は同じ VRAM を奪い合う）。
-- 実測 **0.6017 byte/param**（Q4_K_M）から外挿すると 405B は 243.7 GB。
-  設計書の「理想 4bit で 202.5 GB」より 20% 大きい。
-  405B で 5 tok/s には **1.17 TB/s** の H2D が要る（PCIe 5.0 x16 の 18 倍以上）。
+- Gemma 4 12Bで128 token × 5 Runの実推論が完了した。
+- 全Runで、explicit range readからfinite Ringを経由してBackendへ供給された。
+- 5 Run合計の明示readは4,713,957,416,960 bytes、434,560 ranges。
+- 権威Ring transitionは3,041,920件、prepared-range欠落時のfallbackは0件。
+- M2 verifierは修正版PackをGREENと判定し、撤回済み旧Packを拒否する。
+
+M2は、ALSRが既存方式より高速であること、CUDA／PCIeで機能すること、VRAM超過modelが
+動くこと、31B以上の成立範囲を証明していない。12Bはport regressionの基準であり、
+研究上限ではない。
+
+旧`Phase 0-2`資料にあった帯域逆算、仮想PCIe値、simulator結果、未再実行test結果は、
+実測・導出・仮定が混在していたため現行の性能事実として引用禁止である。監査上の正本は
+`docs/recovery/`のA0成果物、現在の実装判定は上記M2 checkpointとする。
 
 ---
 
@@ -232,6 +238,7 @@ ALSR-PoC/
 - `*.gguf` / blob / `results/` は `.gitignore` 済み。
   Evidence Pack を残したいときは `git add -f results/<run_id>` を明示的に行い、
   何を残したか commit message に書くこと。
+- `work/`はupstream checkoutと中間生成物のローカル領域であり、Gitへ追加しない。
 
 ---
 

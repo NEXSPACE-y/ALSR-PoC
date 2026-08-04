@@ -492,7 +492,7 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
     InFlight f = inflight.front();
     inflight.pop_front();
 
-    ring.transition(f.ref, SlotState::Resident, SlotState::Consuming);
+    ring.transition(f.ref, SlotState::Resident, SlotState::InUse);
 
     const double compute_start = std::max(consumer_busy, f.copy_end);
     const double wait          = compute_start - consumer_busy;
@@ -554,7 +554,8 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
     // 窓内の待機率 = Σwait / Σ(wait + compute)。
     window.push(m.h2d_ms, m.compute_ms, wait * 1e3, (wait + compute_dur) * 1e3);
 
-    ring.transition(f.ref, SlotState::Consuming, SlotState::Free);
+    ring.transition(f.ref, SlotState::InUse, SlotState::Retired);
+    ring.transition(f.ref, SlotState::Retired, SlotState::Empty);
     slot_released[f.ref.slot_id] = compute_end;
 
     total_bytes += f.chunk.bytes;
@@ -698,7 +699,7 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
 
       slot.fill_start_s = prep_start;
       slot.fill_end_s   = prep_end;
-      ring.transition(ref, SlotState::Filling, SlotState::Ready);
+      ring.transition(ref, SlotState::Preparing, SlotState::Ready);
 
       const double copy_start = std::max(transfer_busy, prep_end);
       const double copy_dur   = backend->h2d_time_s(next.bytes, copy_start);
@@ -741,7 +742,7 @@ SimResult run_simulation(const SimConfig& cfg_in, const std::string& run_id,
     inflight.clear();
     const auto hist = ring.state_histogram();
     result.cancel_released_all_slots =
-        (hist[static_cast<std::size_t>(SlotState::Free)] == cfg.ring_depth);
+        (hist[static_cast<std::size_t>(SlotState::Empty)] == cfg.ring_depth);
   } else {
     while (!inflight.empty()) retire_one();
   }

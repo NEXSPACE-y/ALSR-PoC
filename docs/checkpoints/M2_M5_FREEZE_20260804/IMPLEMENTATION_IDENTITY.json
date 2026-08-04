@@ -1,0 +1,45 @@
+{
+  "schema": "alsr.m2.implementation-identity.v1",
+  "runtime_tag": "b10091",
+  "runtime_commit": "b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45",
+  "runtime_patch_sha256": "33f7bf1348c755e4a59c54d17d43ff963726e54fa26bf5212278d874542682e7",
+  "executor_binary_sha256": "50cda0a2412f5065bb9b4eede525e1c6bd8ef4b44a87d5682c6eec9f1ed3e771",
+  "artifacts": [
+    {
+      "path": "implementation/CMakeLists.txt",
+      "sha256": "209a1549306b9f6fca72db0d5645756ee90c23d85b3797507bdcac9d8e6b4fb5"
+    },
+    {
+      "path": "implementation/include/alsr/real_supply.hpp",
+      "sha256": "d1f5346e7373a8086987840ed1fc8b2d8a4fc79ec039e65c39a7bc428d8117a6"
+    },
+    {
+      "path": "implementation/include/alsr/ring_buffer.hpp",
+      "sha256": "a462edba307e285584aca878c6891f6256a41aac831d6c960b56fe5ee44206cf"
+    },
+    {
+      "path": "implementation/src/supply/real_supply.cpp",
+      "sha256": "d8bf86ac99b00f9cf45bc834208913b725a15db39f2e4c3cc66551e7f327b6b3"
+    },
+    {
+      "path": "implementation/src/buffer/ring_buffer.cpp",
+      "sha256": "38d5877c86e5309c91b799d0c4155c44807085d92c2ba269784813fe895c7c1e"
+    },
+    {
+      "path": "implementation/src/cli/alsr_m5_executor.cpp",
+      "sha256": "ea6335f67a4cc161ee3865f490ea1d1e178cd3540a3c69495fd8d95cda95963d"
+    },
+    {
+      "path": "implementation/scripts/verify_m2_acceptance.py",
+      "sha256": "609186cafd9c4a1e2800b1b78c136c3eeb2fd8288dbe6a06506ae5140bb0cd90"
+    },
+    {
+      "path": "implementation/patches/llama.cpp-b10091-alsr-m2.patch",
+      "sha256": "33f7bf1348c755e4a59c54d17d43ff963726e54fa26bf5212278d874542682e7"
+    },
+    {
+      "path": "implementation/bin/alsr-m5-executor",
+      "sha256": "50cda0a2412f5065bb9b4eede525e1c6bd8ef4b44a87d5682c6eec9f1ed3e771"
+    }
+  ]
+}

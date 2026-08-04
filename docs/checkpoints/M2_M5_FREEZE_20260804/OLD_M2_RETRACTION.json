@@ -1,0 +1,61 @@
+{
+  "schema": "alsr.m2.retraction.v1",
+  "mission": "ALSR-M2-M5-REAL-EXECUTOR-01",
+  "issued_at": "2026-08-04T08:45:21+09:00",
+  "current_verdict": "RED",
+  "former_verdict": "GREEN",
+  "former_verdict_status": "WITHDRAWN",
+  "alsr_real_executor_inference": false,
+  "preserved_scope": "INTEGRATION_SPIKE_ONLY",
+  "reason": "The accepted runs observed and validated ordinary Runtime mmap-backed tensor copies, but the callback did not request tensor data and ALSR did not provide the bytes used as the backend copy source.",
+  "objective_findings": [
+    {
+      "id": "M2-R01",
+      "evidence": "acceptance_128_run_1/GRAPH_TRACE.json through acceptance_128_run_5/GRAPH_TRACE.json",
+      "fact": "captured_trace.callback_requests_tensor_data is false in every accepted run"
+    },
+    {
+      "id": "M2-R02",
+      "evidence": "pinned runtime patch and accepted supply traces",
+      "fact": "The callback observed copy events but had no ABI field through which prepared Model Store bytes could become the copy source"
+    },
+    {
+      "id": "M2-R03",
+      "evidence": "accepted RESULT.json supply_controller objects",
+      "fact": "No Model Store range-read, prepared-range, Ready Queue, or finite Ring supply accounting exists"
+    }
+  ],
+  "invalidated_claims": [
+    "Gate M2 is GREEN",
+    "ALSR Real Executor inference = true",
+    "The accepted weight copies were supplied by ALSR",
+    "Gate M3 is authorized by M2 completion"
+  ],
+  "preserved_observations": [
+    "The five ordinary-runtime instrumented runs generated 128 tokens matching the M0 baseline",
+    "The pinned runtime graph and copy instrumentation executed",
+    "The original artifacts remain useful as failure and integration-spike evidence"
+  ],
+  "superseded_artifacts": [
+    {
+      "path": "M2_ACCEPTANCE_SUMMARY.json",
+      "sha256": "05d2bc3dc5fdac1da7e9998d0236d47fd48862463d9dbaf4f8a08d93f6de8514"
+    },
+    {
+      "path": "M2_EVIDENCE_INDEX.json",
+      "sha256": "152fb03e4163a4b9a8f30d6ac24300e7d43c4f82f2f51f8a0d270e5d669be266"
+    },
+    {
+      "path": "M2_REPORT.md",
+      "sha256": "99b2871be42eaca083f43fe5bad2fcabdb1de6a5e376689190436572814e67db"
+    }
+  ],
+  "repair_gate": {
+    "mission": "ALSR-M2-M5-REAL-SUPPLY-REPAIR-01",
+    "required_tokens_per_run": 128,
+    "required_runs": 5,
+    "maximum_seconds_per_run": 1800,
+    "required_source_path": "Model Store -> Preparation -> Ready Queue -> finite Ring -> Backend -> Executor",
+    "runtime_source_fallback_required": 0
+  }
+}

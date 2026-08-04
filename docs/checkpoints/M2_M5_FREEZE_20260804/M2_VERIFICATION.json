@@ -1,0 +1,19 @@
+{
+  "schema": "alsr.m2.verification-result.v1",
+  "mission": "ALSR-M2-M5-REAL-SUPPLY-REPAIR-01",
+  "verified_at": "2026-08-04T10:00:24+09:00",
+  "verifier_path": "implementation/scripts/verify_m2_acceptance.py",
+  "verifier_sha256": "609186cafd9c4a1e2800b1b78c136c3eeb2fd8288dbe6a06506ae5140bb0cd90",
+  "derived_verdict": "GREEN",
+  "result": "M2_ACCEPTANCE_VERIFIED: GREEN (derived: 5/5 exact, explicit Model Store -> finite Ring -> Backend, fallback 0)",
+  "checks": [
+    "all SHA256SUMS entries match",
+    "independent graph captures and manifests are byte-identical",
+    "five runs each generated 128 token IDs and exact text matching the M0 baseline",
+    "Model Store read bytes equal prepared bytes, supplied bytes, and backend weight copy bytes",
+    "runtime source fallback count is zero",
+    "434560 prepared ranges have one bind and one commit",
+    "3041920 Ring transitions have a contiguous authoritative sequence and complete lifecycle",
+    "all runs finished below 1800 seconds"
+  ]
+}

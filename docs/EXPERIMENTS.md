@@ -1,7 +1,17 @@
-# 実験記録
+# 実験記録（旧Phase 0-2／A0監査前）
+
+状態: `HISTORICAL / QUARANTINED_FOR_CURRENT_PERFORMANCE_CLAIMS`
+
+この文書はA0監査前の記録であり、`MEASURED`、`USER_OBSERVED`、`DERIVED`、
+`ASSUMED`、`EMULATED`が混在している。本文中の「実測」「確定」「測定不能」等の語を
+現在の事実としてそのまま引用してはならない。個々のClaimと数値のProvenanceは
+`docs/recovery/A0_CLAIM_LEDGER.json`、`A0_METRIC_PROVENANCE.json`、
+`A0_DEVIATION_MATRIX.csv`で確認する。現在の実装成立範囲は
+`docs/checkpoints/M2_M5_FREEZE_20260804/`を正とする。
 
 Phase 0-2（M5 上）。すべての数値は `results/` 以下の生成物から転記している。
-手で書き換えない（設計書 §16.4）。
+というのが当時の自己申告だった。A0監査は全項目を再実行しておらず、保存済みEvidenceの
+存在確認、内部整合、Provenance分類にはそれぞれ限界がある。
 
 ---
 

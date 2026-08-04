@@ -10,11 +10,12 @@ namespace {
 
 /// FREE から一周させる。
 void full_cycle(RingBuffer& ring, const SlotRef& r) {
-  ring.transition(r, SlotState::Filling, SlotState::Ready);
+  ring.transition(r, SlotState::Preparing, SlotState::Ready);
   ring.transition(r, SlotState::Ready, SlotState::Copying);
   ring.transition(r, SlotState::Copying, SlotState::Resident);
-  ring.transition(r, SlotState::Resident, SlotState::Consuming);
-  ring.transition(r, SlotState::Consuming, SlotState::Free);
+  ring.transition(r, SlotState::Resident, SlotState::InUse);
+  ring.transition(r, SlotState::InUse, SlotState::Retired);
+  ring.transition(r, SlotState::Retired, SlotState::Empty);
 }
 
 }  // namespace
@@ -25,7 +26,7 @@ TEST_CASE("RingBuffer: 正しい状態遷移を一周できる", "[unit][ring]")
   REQUIRE(ring.free_count() == 2);
 
   const SlotRef r = ring.acquire_free();
-  REQUIRE(ring.slot(r).state == SlotState::Filling);
+  REQUIRE(ring.slot(r).state == SlotState::Preparing);
   REQUIRE(ring.in_flight() == 1);
   REQUIRE(ring.free_count() == 1);
 
@@ -40,7 +41,7 @@ TEST_CASE("RingBuffer: 遷移表にない遷移は State エラー", "[unit][rin
 
   // FILLING から直接 RESIDENT へは行けない
   try {
-    ring.transition(r, SlotState::Filling, SlotState::Resident);
+    ring.transition(r, SlotState::Preparing, SlotState::Resident);
     FAIL("should have thrown");
   } catch (const Error& e) {
     REQUIRE(e.kind() == ErrorKind::State);
@@ -51,7 +52,7 @@ TEST_CASE("RingBuffer: 遷移表にない遷移は State エラー", "[unit][rin
   REQUIRE_THROWS_AS(ring.transition(r, SlotState::Ready, SlotState::Copying), Error);
 
   // 逆走も拒否
-  REQUIRE_THROWS_AS(ring.transition(r, SlotState::Filling, SlotState::Free), Error);
+  REQUIRE_THROWS_AS(ring.transition(r, SlotState::Preparing, SlotState::Empty), Error);
 }
 
 TEST_CASE("RingBuffer: 世代番号で ABA を検出する", "[unit][ring]") {
@@ -72,7 +73,7 @@ TEST_CASE("RingBuffer: 世代番号で ABA を検出する", "[unit][ring]") {
   } catch (const Error& e) {
     REQUIRE(e.kind() == ErrorKind::State);
   }
-  REQUIRE_THROWS_AS(ring.transition(old, SlotState::Filling, SlotState::Ready), Error);
+  REQUIRE_THROWS_AS(ring.transition(old, SlotState::Preparing, SlotState::Ready), Error);
   REQUIRE_THROWS_AS(ring.host_buffer(old), Error);
 }
 
@@ -121,9 +122,9 @@ TEST_CASE("RingBuffer: cancel で全スロットが安全に解放される", "[
   RingBuffer ring(4, 512);
   const SlotRef a = ring.acquire_free();
   const SlotRef b = ring.acquire_free();
-  ring.transition(a, SlotState::Filling, SlotState::Ready);
+  ring.transition(a, SlotState::Preparing, SlotState::Ready);
   ring.transition(a, SlotState::Ready, SlotState::Copying);
-  ring.transition(b, SlotState::Filling, SlotState::Ready);
+  ring.transition(b, SlotState::Preparing, SlotState::Ready);
   REQUIRE(ring.in_flight() == 2);
 
   ring.cancel_all();
@@ -131,7 +132,7 @@ TEST_CASE("RingBuffer: cancel で全スロットが安全に解放される", "[
   REQUIRE(ring.free_count() == 4);
   REQUIRE(ring.in_flight() == 0);
   const auto hist = ring.state_histogram();
-  REQUIRE(hist[static_cast<std::size_t>(SlotState::Free)] == 4);
+  REQUIRE(hist[static_cast<std::size_t>(SlotState::Empty)] == 4);
 
   // cancel 前のハンドルはすべて無効
   REQUIRE_THROWS_AS(ring.slot(a), Error);

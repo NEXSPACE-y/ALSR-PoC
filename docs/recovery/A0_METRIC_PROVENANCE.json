@@ -1,0 +1,2798 @@
+{
+  "_document": "A0_METRIC_PROVENANCE",
+  "_gate": "A0",
+  "_mission": "ALSR-A0-RECOVERY-AUDIT-01",
+  "_generated_at": "2026-08-02 JST",
+  "_amendments": [
+    {
+      "amendment_mission": "ALSR-A0-REM-01",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / 次 Gate 進行は行っていない。",
+      "changes": [
+        "MP-119 の scope を訂正した。0.6017 byte/param の分子は total_tensor_bytes ではなく text_bytes である。分子・分母・代替基準（total_tensor_bytes 基準 = 0.640424 byte/param）を構造化フィールドとして明示した。",
+        "MP-120 / 121 / 122 / 123 に depends_on を追加し、scope を MP-119 の訂正に連動させた。各項に total_tensor_bytes 基準での代替値（259.4 GB / 1246.9 GB/s / 44.8 GB / 76.9 GB）を併記した。"
+      ],
+      "values_changed": "無し。0.6017 / 243.7 / 1168.5 / 42.1 / 72.2 はいずれも変更していない。訂正したのは scope（導出の基準）と依存関係の記述である。",
+      "counts_changed": "無し。provenance の分類（全て DERIVED）に変更は無いため counts は初版のままである。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-02",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / README・KNOWN_LIMITATIONS 修正 / 次 Gate 進行は行っていない。",
+      "changes": [
+        "_method を値の所在で 3 系統に分離した（(A) results 由来 114 / (B) docs 由来 11 / (C) 再計算値）。初版の『値は results/ 配下の実ファイルから直接読み出している』は (A) にしか当てはまらなかった。",
+        "provenance_final / provenance_inputs / value_origin を全 125 項目に付与し、_provenance_model で定義した。EMULATED 36 項目は例外なく入力に ASSUMED を含む。",
+        "MP-094 に series_separation を追加し、逆算帯域を系列 A（USER_OBSERVED 2 サンプル）と系列 B（MEASURED_M5 5 サンプル）に分離した。",
+        "MP-125（117.59 GB/s / docs/EXPERIMENTS.md:155）を追加した。README.md:203 の上端 118 の出所でありながら初版の台帳に無かった。"
+      ],
+      "values_changed": "無し。既存 124 項目の value / unit / provenance / scope はいずれも変更していない。MP-125 は新規追加であり、文書に既に存在する値を台帳へ収録したものである。",
+      "counts_changed": "総項目 124 → 125、DERIVED 27 → 28。他の分類に変更は無い。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-03",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / README・KNOWN_LIMITATIONS 修正 / 次 Gate 進行は行っていない。",
+      "trigger": "ALSR-A0-REM-02 が RED 裁定。Provenance 誤分類 1 件と依存関係誤記 1 件の是正。",
+      "changes": [
+        "MP-118（405B 理想 4bit 202.5 GB）を DECLARED_SPEC → DERIVED へ訂正した。仕様値ではなく 405e9 × 0.5 byte/param の算術結果であり、両入力とも ASSUMED である。counts は DECLARED_SPEC 4 → 3 / DERIVED 28 → 29。",
+        "MP-125 の depends_on を MP-008（decode_speed_mean）→ MP-007（decode_speed_median）へ訂正した。117.59 GB/s の分子は中央値である。",
+        "MP-121 の depends_on から MP-084 を外した。405B 外挿の常駐 10 GB は docs/EXPERIMENTS.md 2b.5 の文書上の仮定であり、run04 の config 値と同値なだけで出所が異なる。",
+        "MP-066（value = null）に value_is_absent を付し、空だった note を埋めた。EMULATED が指すのは token/s ではなくシミュレータが実行を拒否した事実である。",
+        "MP-120 の note に、比較対象 202.5 GB が DERIVED であること（DERIVED どうしの比較であること）を追記した。"
+      ],
+      "values_changed": "無し。202.5 / 117.59 / 1168.5 を含め、いずれの value も変更していない。訂正したのは分類・依存関係・注記である。",
+      "counts_changed": "DECLARED_SPEC 4 → 3、DERIVED 28 → 29。総項目 125 は不変。"
+    }
+  ],
+  "_basis": "Rev.02 §5 メトリクス出自（Provenance）規約 / §14 実施4",
+  "_method": [
+    "本文書の 125 項目は、値がどこから来たかによって次の 3 系統に分かれる。",
+    "初版の _method は『値は results/ 配下の実ファイルから直接読み出しており、手転記していない』と",
+    "一括して述べていたが、これは (A) にしか当てはまらない。ALSR-A0-REM-02 で系統を分離した。",
+    "",
+    "(A) results 由来 — 114 項目。results/ 配下の実ファイルから直接読み出した。手転記していない。",
+    "    値の正しさは当該ファイルの内容に還元される。本監査は Run を再実行していないため、",
+    "    ファイルが記録している値であることまでが確認範囲である（A0_CLAIM_LEDGER: EVIDENCE_PRESENT_NOT_REEXECUTED）。",
+    "",
+    "(B) docs 由来 — 11 項目（MP-115〜MP-125）。Markdown 文書内にのみ存在し、results/ に裏付けファイルが無い。",
+    "    内訳は DECLARED_SPEC 3 件（MP-115〜117）と DERIVED 8 件（MP-118〜125）。",
+    "    DERIVED 8 件は Rev.02 §10.3 の evidence 要求を満たしていない（D-32 / A0_CLAIM_LEDGER A0-002B / A0-011 / A0-012）。",
+    "    手転記であるため、文書側の値が誤っていれば本文書も同じ誤りを引き継ぐ。",
+    "",
+    "(C) 再計算値 — 本監査が自ら計算した値であり、リポジトリ内のどのファイルにも存在しない。",
+    "    ALSR-A0-RECOVERY-AUDIT-01: 6 Run の metrics.jsonl の SHA-256（A0_EVIDENCE_INDEX:integrity_checks）。",
+    "    ALSR-A0-REM-01: MP-119 の検算 0.6017483 と、総テンソルバイト基準の代替値",
+    "    0.640424 byte/param / 259.4 GB / 1246.9 GB/s / 44.8 GB / 76.9 GB（各項の alternative_basis）。",
+    "    ALSR-A0-REM-02: 索引 150 ファイル全件の SHA-256 再計算（A0_EVIDENCE_INDEX:path_migration）と、系列 B の min / max 110.05 / 119.45 GB/s（MP-094:series_separation）。",
+    "    再計算値は metrics 配列には計上せず、該当項目の注記フィールド（alternative_basis / series_separation）として保持している。計上すると出自の異なる値が混ざるためである。",
+    "",
+    "provenance の分類のみが監査判断である。値そのものは 1 つも書き換えていない。",
+    "いかなるファイルも変更していない。ベンチマークの再実行も行っていない。"
+  ],
+  "metric_types": {
+    "USER_OBSERVED": "ユーザー観測",
+    "MEASURED_M5": "M5実測",
+    "MEASURED_RTX": "RTX実測",
+    "EMULATED": "シミュレーション",
+    "DERIVED": "数式導出",
+    "ASSUMED": "仮定",
+    "DECLARED_SPEC": "仕様値",
+    "UNKNOWN": "未取得"
+  },
+  "_provenance_model": {
+    "_note": "ALSR-A0-REM-02 で追加。provenance 1 つでは値の強度を判定できないため、出力側と入力側を分離した。",
+    "provenance": "初版からのフィールド。provenance_final と同義であり、値は常に一致する。互換のため残置している。",
+    "provenance_final": "その値そのものの出自。",
+    "provenance_inputs": "その値を得るために使った入力の出自。一次値（USER_OBSERVED / MEASURED_M5 / MEASURED_RTX / ASSUMED / DECLARED_SPEC）は入力を持たないため (一次値・入力なし) とする。",
+    "value_origin": "値の所在。RESULTS_FILE = results/ 配下の実ファイルから読み出した。DOCS_ONLY = Markdown 文書内にのみ存在する。",
+    "why": [
+      "Rev.02 §5.2 が禁じる誤読（EMULATED を実測と読ませる）は、final だけを示して input を隠すことで起きる。",
+      "provenance_inputs に ASSUMED を含む値は、その仮定が変われば値も変わる。該当は 65 項目。",
+      "EMULATED 36 項目は例外なく入力に ASSUMED を含む。すなわち『シミュレータが出した』ことは",
+      "『入力が確からしい』ことを一切含意しない。",
+      "MEASURED_RTX を入力に持つ項目は 0 である。"
+    ],
+    "counts_provenance_final": {
+      "USER_OBSERVED": 6,
+      "MEASURED_M5": 25,
+      "EMULATED": 36,
+      "ASSUMED": 26,
+      "DERIVED": 29,
+      "DECLARED_SPEC": 3
+    },
+    "counts_by_input": {
+      "(一次値・入力なし)": 60,
+      "ASSUMED": 65,
+      "DERIVED": 5,
+      "EMULATED": 1,
+      "MEASURED_M5": 59,
+      "USER_OBSERVED": 2
+    },
+    "counts_value_origin": {
+      "RESULTS_FILE": 114,
+      "DOCS_ONLY": 11
+    }
+  },
+  "counts": {
+    "USER_OBSERVED": 6,
+    "MEASURED_M5": 25,
+    "EMULATED": 36,
+    "ASSUMED": 26,
+    "DERIVED": 29,
+    "DECLARED_SPEC": 3,
+    "MEASURED_RTX": 0,
+    "UNKNOWN": 13
+  },
+  "key_findings": [
+    "MEASURED_RTX は 0 件。RTX 検証機に一切アクセスしていない。Rev.02 §4.2 / Gate R0 は未着手。",
+    "シミュレータ Run の token/s は全て EMULATED であり、その入力 H2D 帯域（12 / 25 GB/s）は ASSUMED である。Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を明示的に禁止しており、現状の 12 / 25 GB/s はこの禁止事項に該当する仮定である。",
+    "resident_bytes（10 GB）は Rev.02 §6.5 の VRAM 予算式による導出ではなく、docs/EXPERIMENTS.md 2b.3 の手計算に基づく設定値である。§6.5 が禁じる「常駐量を勝手に決める」に該当する。",
+    "M5 の実効重み供給帯域（113 / 121 GB/s）は DERIVED（逆算値）であり、かつ S_stream 上限ケースという未確定の仮定に依存する。",
+    "規模外挿の基準 0.6017 byte/param（MP-119）は text_bytes ÷ 公称パラメータ数であり、総テンソルバイト基準ではない。総テンソルバイト基準では 0.640424 byte/param、405B 外挿は 243.7 GB ではなく 259.4 GB になる。どちらを分子に取るかが文書側で明示されないまま、値のみが確定形で引用されている（ALSR-A0-REM-01 で訂正）。",
+    "README.md:203 の「113〜118 GB/s」は、USER_OBSERVED 2 サンプル由来の系列（113.06〜121.46）と MEASURED_M5 5 サンプル由来の系列（110.05〜119.45 / 中央値 117.59）を混ぜた区間であり、どちらの系列の範囲とも一致しない。両系列とも provenance_final は DERIVED であって帯域の直接測定ではなく、S_stream 上限という未確定の仮定に依存する（下限仮定では包絡が 97.71〜107.84 GB/s へ移り、上限仮定の区間と重ならない）。",
+    "設計書 §2.4 の「理想 4bit で 202.5 GB」（MP-118）は仕様値ではなく 405e9 × 0.5 byte/param の導出値である（ALSR-A0-REM-03 で DECLARED_SPEC → DERIVED へ訂正）。したがって A0-011 の「設計書の見積りより 20% 大きい」は**DERIVED どうしの比較**であり、比較の基準側も仮定に依存する。不動点は存在しない。"
+  ],
+  "metrics": [
+    {
+      "metric": "decode_speed",
+      "value": 15.35,
+      "unit": "token/s",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "num_predict=1024 / num_ctx=4096 / temperature=0 / Ollama 通常推論",
+      "source": "results/baseline_m5_user_provided/provenance.json:runs[0]",
+      "note": "ユーザー提示のターミナル画面（/api/chat 生レスポンス）からの転記。本 PoC のスクリプト取得値ではない。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠",
+        "ALSR の性能主張"
+      ],
+      "id": "MP-001"
+    },
+    {
+      "metric": "eval_count",
+      "value": 1024,
+      "unit": "token",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "上記 1024 トークン Run の一次値",
+      "source": "results/baseline_m5_user_provided/provenance.json:runs[0].eval_count",
+      "id": "MP-002"
+    },
+    {
+      "metric": "eval_duration",
+      "value": 66706808999,
+      "unit": "ns",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "上記 1024 トークン Run の一次値",
+      "source": "results/baseline_m5_user_provided/provenance.json:runs[0].eval_duration_ns",
+      "id": "MP-003"
+    },
+    {
+      "metric": "decode_speed",
+      "value": 16.49,
+      "unit": "token/s",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "num_predict=256 / num_ctx=4096 / temperature=0",
+      "source": "results/baseline_m5_user_provided/provenance.json:runs[1]",
+      "note": "画面表示値の転記。生 JSON はユーザーのホームディレクトリにあり本リポジトリ内に無い。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠"
+      ],
+      "id": "MP-004"
+    },
+    {
+      "metric": "ollama_ps_model_size",
+      "value": "8.0 GB",
+      "unit": "(表示文字列)",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "ollama ps の SIZE 表示",
+      "source": "results/baseline_m5_user_provided/provenance.json:ollama_ps",
+      "note": "Rev.02 §4.1 の「Ollama表示サイズ 約8.0GB」に対応。",
+      "id": "MP-005"
+    },
+    {
+      "metric": "ollama_ps_processor",
+      "value": "100% GPU",
+      "unit": "(表示文字列)",
+      "provenance": "USER_OBSERVED",
+      "provenance_final": "USER_OBSERVED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "ollama ps の PROCESSOR 表示",
+      "source": "results/baseline_m5_user_provided/provenance.json:ollama_ps",
+      "id": "MP-006"
+    },
+    {
+      "metric": "decode_speed_median",
+      "value": 15.965297430372907,
+      "unit": "token/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "scripts/baseline_m5.sh / num_ctx=4096 / num_predict=256 / seed=20260802 / warm-up 除外 5 サンプル",
+      "source": "results/baseline_m5.json:generation_token_per_s.median",
+      "note": "Ollama 通常推論（Metal / ユニファイドメモリ）の 中央値。ALSR 経路ではない。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠",
+        "ALSR の改善率の分母としての無条件使用"
+      ],
+      "id": "MP-007"
+    },
+    {
+      "metric": "decode_speed_mean",
+      "value": 15.808370907972058,
+      "unit": "token/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "scripts/baseline_m5.sh / num_ctx=4096 / num_predict=256 / seed=20260802 / warm-up 除外 5 サンプル",
+      "source": "results/baseline_m5.json:generation_token_per_s.mean",
+      "note": "Ollama 通常推論（Metal / ユニファイドメモリ）の 平均。ALSR 経路ではない。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠",
+        "ALSR の改善率の分母としての無条件使用"
+      ],
+      "id": "MP-008"
+    },
+    {
+      "metric": "decode_speed_min",
+      "value": 14.940811334784701,
+      "unit": "token/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "scripts/baseline_m5.sh / num_ctx=4096 / num_predict=256 / seed=20260802 / warm-up 除外 5 サンプル",
+      "source": "results/baseline_m5.json:generation_token_per_s.min",
+      "note": "Ollama 通常推論（Metal / ユニファイドメモリ）の 最小。ALSR 経路ではない。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠",
+        "ALSR の改善率の分母としての無条件使用"
+      ],
+      "id": "MP-009"
+    },
+    {
+      "metric": "decode_speed_max",
+      "value": 16.217882178986503,
+      "unit": "token/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "scripts/baseline_m5.sh / num_ctx=4096 / num_predict=256 / seed=20260802 / warm-up 除外 5 サンプル",
+      "source": "results/baseline_m5.json:generation_token_per_s.max",
+      "note": "Ollama 通常推論（Metal / ユニファイドメモリ）の 最大。ALSR 経路ではない。",
+      "forbidden_use": [
+        "RTX/PCIe 性能の根拠",
+        "ALSR の改善率の分母としての無条件使用"
+      ],
+      "id": "MP-010"
+    },
+    {
+      "metric": "ram_memcpy",
+      "value": 55.711745157827714,
+      "unit": "GB/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "scope": "alsr-bw / 512 MiB バッファ / 7 回の中央値",
+      "source": "results/bandwidth_m5.json:measurements[ram_memcpy].median",
+      "note": "memcpy の read+write 合計ではなく、コピーしたバイト数 / 秒",
+      "forbidden_use": [
+        "PCIe H2D 帯域の代用",
+        "RTX 機の RAM 帯域の推定"
+      ],
+      "id": "MP-011"
+    },
+    {
+      "metric": "ram_sequential_read",
+      "value": 78.73017608564149,
+      "unit": "GB/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "scope": "alsr-bw / 512 MiB バッファ / 7 回の中央値",
+      "source": "results/bandwidth_m5.json:measurements[ram_sequential_read].median",
+      "note": "u64 の総和。ストア無しの純粋な読み出し",
+      "forbidden_use": [
+        "PCIe H2D 帯域の代用",
+        "RTX 機の RAM 帯域の推定"
+      ],
+      "id": "MP-012"
+    },
+    {
+      "metric": "crc32c",
+      "value": 11.774722290991633,
+      "unit": "GB/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "scope": "alsr-bw / 512 MiB バッファ / 7 回の中央値",
+      "source": "results/bandwidth_m5.json:measurements[crc32c].median",
+      "note": "ARMv8 CRC32 命令を使用",
+      "forbidden_use": [
+        "PCIe H2D 帯域の代用",
+        "RTX 機の RAM 帯域の推定"
+      ],
+      "id": "MP-013"
+    },
+    {
+      "metric": "file_read_mmap",
+      "value": 56.38820461635299,
+      "unit": "GB/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "scope": "alsr-bw / 512 MiB バッファ / 7 回の中央値",
+      "source": "results/bandwidth_m5.json:measurements[file_read_mmap].median",
+      "note": "ページキャッシュ warm 前提。cold 値ではない",
+      "forbidden_use": [
+        "PCIe H2D 帯域の代用",
+        "RTX 機の RAM 帯域の推定"
+      ],
+      "id": "MP-014"
+    },
+    {
+      "metric": "file_read_read",
+      "value": 17.05939573134524,
+      "unit": "GB/s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "scope": "alsr-bw / 512 MiB バッファ / 7 回の中央値",
+      "source": "results/bandwidth_m5.json:measurements[file_read_read].median",
+      "note": "ページキャッシュ warm 前提。cold 値ではない",
+      "forbidden_use": [
+        "PCIe H2D 帯域の代用",
+        "RTX 機の RAM 帯域の推定"
+      ],
+      "id": "MP-015"
+    },
+    {
+      "metric": "gguf_12b_total_tensor_bytes",
+      "value": 7365558464,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "GGUF v3 の静的解析（読み取り専用）",
+      "source": "results/manifest_gemma4_12b.json:physics.total_tensor_bytes",
+      "note": "ファイル実体から算出した確定値。推定ではない。unexplained_bytes=0 / issues=0。",
+      "id": "MP-016"
+    },
+    {
+      "metric": "gguf_12b_tensor_count",
+      "value": 667,
+      "unit": "個",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "GGUF v3 の静的解析",
+      "source": "results/gguf_gemma4_12b.json:tensor_count",
+      "id": "MP-017"
+    },
+    {
+      "metric": "gguf_12b_padding_bytes",
+      "value": 1344,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "alignment 32 で説明可能な padding",
+      "source": "results/manifest_gemma4_12b.json:gguf_layout",
+      "id": "MP-018"
+    },
+    {
+      "metric": "gguf_31b_tensor_count",
+      "value": 1189,
+      "unit": "個",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:31b",
+      "scope": "GGUF v3 の静的解析",
+      "source": "results/manifest_gemma4_31b.json:tensor_count",
+      "note": "unknown_count=0。",
+      "id": "MP-019"
+    },
+    {
+      "metric": "gguf_31b_text_bytes",
+      "value": 18654198000,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:31b",
+      "scope": "GGUF v3 の静的解析（サブシステム分離後）",
+      "source": "results/manifest_gemma4_31b.json:physics.text_bytes",
+      "note": "",
+      "id": "MP-020"
+    },
+    {
+      "metric": "gguf_31b_vision_bytes",
+      "value": 1186547904,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:31b",
+      "scope": "GGUF v3 の静的解析（サブシステム分離後）",
+      "source": "results/manifest_gemma4_31b.json:physics.vision_bytes",
+      "note": "視覚側を毎トークン対象から外す判定は DR-0011 による設計判断であり、実行経路の計装で確認したものではない。",
+      "id": "MP-021"
+    },
+    {
+      "metric": "gguf_31b_projector_bytes",
+      "value": 12386304,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:31b",
+      "scope": "GGUF v3 の静的解析（サブシステム分離後）",
+      "source": "results/manifest_gemma4_31b.json:physics.projector_bytes",
+      "note": "視覚側を毎トークン対象から外す判定は DR-0011 による設計判断であり、実行経路の計装で確認したものではない。",
+      "id": "MP-022"
+    },
+    {
+      "metric": "gguf_31b_total_tensor_bytes",
+      "value": 19853132208,
+      "unit": "byte",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:31b",
+      "scope": "GGUF v3 の静的解析（サブシステム分離後）",
+      "source": "results/manifest_gemma4_31b.json:physics.total_tensor_bytes",
+      "note": "",
+      "id": "MP-023"
+    },
+    {
+      "metric": "plan_12b_256mib_chunk_count",
+      "value": 30,
+      "unit": "個",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "alsr-plan --chunk-mib 256 の決定論的出力",
+      "source": "results/plan_gemma4_256mib.json:summary.chunk_count",
+      "note": "plan_structure_sha256=170474fdb8a782b95449c0c3dd9909585dae63d75a9571395c0852830dab2154",
+      "id": "MP-024"
+    },
+    {
+      "metric": "plan_12b_256mib_exec_order_inversions",
+      "value": 1,
+      "unit": "箇所",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "ファイル順と実行順のズレ",
+      "source": "results/plan_gemma4_256mib.json:summary.exec_order_inversions",
+      "id": "MP-025"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 6.67620725,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-026"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 1.696345084,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-027"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 1.784190791,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-028"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 7.498447834,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-029"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 5.878783416,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-030"
+    },
+    {
+      "metric": "wall_seconds",
+      "value": 17.08326625,
+      "unit": "s",
+      "provenance": "MEASURED_M5",
+      "provenance_final": "MEASURED_M5",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "シミュレータ実行の壁時計。計測オーバーヘッドの把握用であり性能値ではない。",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:throughput.wall_seconds",
+      "forbidden_use": [
+        "推論速度としての解釈",
+        "ALSR 性能の指標"
+      ],
+      "id": "MP-031"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 3.360679296886178,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "H2D=25.0 GB/s（仮定値）/ resident=0 B / 仮想時間モデル",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-032"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 25.051896992967443,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "設定帯域 25.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-033"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.9176028583103383,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "同上",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-034"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 25,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "同上",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-035"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.2975589439306019,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "同上",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json:throughput.virtual_seconds",
+      "id": "MP-036"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 1.6248970233284057,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "H2D=12.0 GB/s（仮定値）/ resident=0 B / 仮想時間モデル",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-037"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 12.03765088487578,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "設定帯域 12.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-038"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.9601607715480759,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "同上",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-039"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 25,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "同上",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-040"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.6154237272356552,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "同上",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json:throughput.virtual_seconds",
+      "id": "MP-041"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 0.0,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "H2D=25.0 GB/s（仮定値）/ resident=0 B / 仮想時間モデル",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-042"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 24.711040870809832,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "設定帯域 25.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-043"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.006310445025554568,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "同上",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-044"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 0,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "同上",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-045"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.5423711317375116,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "同上",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json:throughput.virtual_seconds",
+      "id": "MP-046"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.8638924435120994,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "H2D=25.0 GB/s（仮定値）/ resident=10000000000 B / 仮想時間モデル",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-047"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 25.009101111472315,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "設定帯域 25.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-048"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.9173519519408705,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "同上",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-049"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 33,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "同上",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-050"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.35739117694911793,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "同上",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/summary.json:throughput.virtual_seconds",
+      "id": "MP-051"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 1.382605073737661,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "H2D=12.0 GB/s（仮定値）/ resident=10000000000 B / 仮想時間モデル",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-052"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 12.017396815773132,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "設定帯域 12.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-053"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.9600998945194557,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "同上",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-054"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 33,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "同上",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-055"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.740290854188404,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "同上",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/summary.json:throughput.virtual_seconds",
+      "id": "MP-056"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 1.3287612915775664,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ (M5 上で実行)",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "H2D=25.0 GB/s（仮定値）/ resident=0 B / 仮想時間モデル",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:throughput.tokens_per_s",
+      "note": "入力の H2D 帯域は実測ではなく仮定値。measured_on_real_hardware=false。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-057"
+    },
+    {
+      "metric": "effective_h2d_gbps",
+      "value": 24.90177937000327,
+      "unit": "GB/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "設定帯域 25.0 GB/s に対するシミュレータ内の実効値",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:throughput.effective_h2d_gbps",
+      "note": "設定値をほぼそのまま返す。PCIe の測定ではない。",
+      "forbidden_use": [
+        "PCIe 実効帯域の主張"
+      ],
+      "id": "MP-058"
+    },
+    {
+      "metric": "gpu_wait_ratio",
+      "value": 0.9174587669632195,
+      "unit": "ratio",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "同上",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:overlap_and_starvation.gpu_wait_ratio",
+      "forbidden_use": [
+        "実 GPU の待機率"
+      ],
+      "id": "MP-059"
+    },
+    {
+      "metric": "starvation_events",
+      "value": 75,
+      "unit": "回",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "同上",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:overlap_and_starvation.starvation_events",
+      "id": "MP-060"
+    },
+    {
+      "metric": "virtual_seconds",
+      "value": 0.7604261445509503,
+      "unit": "s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "同上",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json:throughput.virtual_seconds",
+      "id": "MP-061"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.853558910980294,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ fixed_64mib / measurable=True",
+      "source": "results/sweep_chunk_sizes.json:cases[fixed_64mib]",
+      "note": "仮想時間は決定論的なので反復しても不変。反復が効くのは壁時計だけ",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-062"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.8603861854909614,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ fixed_128mib / measurable=True",
+      "source": "results/sweep_chunk_sizes.json:cases[fixed_128mib]",
+      "note": "仮想時間は決定論的なので反復しても不変。反復が効くのは壁時計だけ",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-063"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.8638924435120994,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ fixed_256mib / measurable=True",
+      "source": "results/sweep_chunk_sizes.json:cases[fixed_256mib]",
+      "note": "仮想時間は決定論的なので反復しても不変。反復が効くのは壁時計だけ",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-064"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.830254826556971,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ fixed_512mib / measurable=True",
+      "source": "results/sweep_chunk_sizes.json:cases[fixed_512mib]",
+      "note": "仮想時間は決定論的なので反復しても不変。反復が効くのは壁時計だけ",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-065"
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": null,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ fixed_1024mib / measurable=False",
+      "source": "results/sweep_chunk_sizes.json:cases[fixed_1024mib]",
+      "note": "値は存在しない（null）。シミュレータは 1024 MiB ケースを実行しておらず、事前チェックが ERROR[invalid]『VRAM 不足: 常駐重み 10000000000 + ring 4283453952 = 14283453952 が device memory 12884901888 を超える』を返して停止した。したがって EMULATED が指すのは token/s の値ではなく、**シミュレータが実行を拒否したという結果**である。ALSR-A0-REM-03 で value_is_absent を付し、初版の空 note を埋めた。A0_CLAIM_LEDGER A0-010 を参照。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-066",
+      "value_is_absent": true
+    },
+    {
+      "metric": "tokens_per_s",
+      "value": 2.844728894042086,
+      "unit": "token/s",
+      "provenance": "EMULATED",
+      "provenance_final": "EMULATED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "仮想時間シミュレータ",
+      "scope": "Chunk スイープ variable_16_512mib / measurable=True",
+      "source": "results/sweep_chunk_sizes.json:cases[variable_16_512mib]",
+      "note": "仮想時間は決定論的なので反復しても不変。反復が効くのは壁時計だけ",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域"
+      ],
+      "id": "MP-067"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 25.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-068"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/config.json:backend.prepare.gb_per_s",
+      "id": "MP-069"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 300.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-070"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run01-gemma4-fixed-pcie4-29057ced221a",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run01-gemma4-fixed-pcie4-29057ced221a/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-071"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 12.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-072"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/config.json:backend.prepare.gb_per_s",
+      "id": "MP-073"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 300.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-074"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run02-gemma4-adaptive-pcie3-fd058c7ee687",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-075"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 25.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-076"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/config.json:backend.prepare.gb_per_s",
+      "id": "MP-077"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 8.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-078"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run03-synthetic-adaptive-healthy-cc444f432f2d",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run03-synthetic-adaptive-healthy-cc444f432f2d/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-079"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 25.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-080"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/config.json:backend.prepare.gb_per_s",
+      "id": "MP-081"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 300.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-082"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-083"
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 10000000000,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run04-31b-resident10-pcie4-596595facb61",
+      "scope": "VRAM 常駐重量の仮定値",
+      "source": "results/run04-31b-resident10-pcie4-596595facb61/config.json:run.resident_bytes",
+      "note": "Rev.02 §6.5 は VRAM総量 = runtime + KV cache + activation + ring buffer + resident weight + 安全余白 での算出を要求する。本値は docs/EXPERIMENTS.md 2b.3 の手計算（ring 1GB / KV+activation+context 1GB の「想定」）に基づく設定値であり、§6.5 の計算器による導出ではない。",
+      "forbidden_use": [
+        "§6.5 準拠の VRAM 予算として扱うこと"
+      ],
+      "id": "MP-084"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 12.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-085"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/config.json:backend.prepare.gb_per_s",
+      "id": "MP-086"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 300.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-087"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-088"
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 10000000000,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run05-31b-resident10-pcie3-c851259f505a",
+      "scope": "VRAM 常駐重量の仮定値",
+      "source": "results/run05-31b-resident10-pcie3-c851259f505a/config.json:run.resident_bytes",
+      "note": "Rev.02 §6.5 は VRAM総量 = runtime + KV cache + activation + ring buffer + resident weight + 安全余白 での算出を要求する。本値は docs/EXPERIMENTS.md 2b.3 の手計算（ring 1GB / KV+activation+context 1GB の「想定」）に基づく設定値であり、§6.5 の計算器による導出ではない。",
+      "forbidden_use": [
+        "§6.5 準拠の VRAM 予算として扱うこと"
+      ],
+      "id": "MP-089"
+    },
+    {
+      "metric": "h2d_bandwidth_setting",
+      "value": 25.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "シミュレータへ与えた仮定帯域",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/config.json:backend.h2d.gb_per_s",
+      "note": "Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を禁止し、実機取得値のみを許可する。この値は実機未取得のまま PCIe 3.0/4.0 相当として使われている。Gate R0 で実測値へ置換が必要。",
+      "forbidden_use": [
+        "PCIe 実効帯域の代用",
+        "RTX3060 の H2D 性能"
+      ],
+      "id": "MP-090"
+    },
+    {
+      "metric": "prepare_bandwidth_setting",
+      "value": 100.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "B_prepare の仮定値",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/config.json:backend.prepare.gb_per_s",
+      "id": "MP-091"
+    },
+    {
+      "metric": "consume_bandwidth_setting",
+      "value": 300.0,
+      "unit": "GB/s",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "GPU 消費速度の仮定値",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/config.json:backend.consume_bytes_per_s",
+      "note": "GPU 演算能力の実測ではない。",
+      "id": "MP-092"
+    },
+    {
+      "metric": "device_memory_bytes",
+      "value": 12884901888,
+      "unit": "byte",
+      "provenance": "ASSUMED",
+      "provenance_final": "ASSUMED",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(シミュレータ入力)",
+      "run_id": "run06-31b-resident0-pcie4-ef64f863d9ba",
+      "scope": "VRAM 総量の仮定値",
+      "source": "results/run06-31b-resident0-pcie4-ef64f863d9ba/config.json:backend.device_memory_bytes",
+      "note": "RTX3060 12GB の公称値に基づく設定。実機の実効利用可能 VRAM は未取得。",
+      "id": "MP-093"
+    },
+    {
+      "metric": "effective_weight_bandwidth",
+      "value": 113.06,
+      "unit": "GB/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "USER_OBSERVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "USER_OBSERVED 15.35 token/s × S_stream 上限 7365558464 B の逆算",
+      "source": "results/baseline_m5_user_provided/provenance.json:derived_effective_weight_bandwidth",
+      "note": "直接測定ではない逆算値。S_stream 上限ケース（tied embedding 全読み）という未確定の仮定に依存する（DR-0005）。",
+      "depends_on": [
+        "MP-001",
+        "S_stream 上限の仮定"
+      ],
+      "forbidden_use": [
+        "M5 のメモリ帯域仕様値としての引用",
+        "RTX 機の帯域推定"
+      ],
+      "id": "MP-094",
+      "series": "A (USER_OBSERVED 15.35 token/s)",
+      "series_separation": {
+        "_note": "ALSR-A0-REM-02 で追加。README.md:203 の「113〜118 GB/s」は 2 つの異なる母集団の値を 1 つの区間として提示している。",
+        "series_A_USER_OBSERVED": {
+          "population": "ユーザーがターミナル画面で観測した 2 回の Run（15.35 / 16.49 token/s）",
+          "n": 2,
+          "token_per_s": [
+            15.35,
+            16.49
+          ],
+          "derived_gb_per_s": [
+            113.06,
+            121.46
+          ],
+          "metrics": [
+            "MP-094",
+            "MP-095"
+          ]
+        },
+        "series_B_MEASURED_M5": {
+          "population": "scripts/baseline_m5.sh による warm-up 除外 5 サンプル",
+          "n": 5,
+          "token_per_s_min_median_max": [
+            14.940811334784701,
+            15.965297430372907,
+            16.217882178986503
+          ],
+          "derived_gb_per_s_min_median_max": [
+            110.05,
+            117.59,
+            119.45
+          ],
+          "metrics": [
+            "MP-125"
+          ],
+          "note": "min / max の 110.05 と 119.45 は本監査による再計算値であり、文書にも results/ にも存在しない。文書に現れるのは中央値由来の 117.59 のみ（docs/EXPERIMENTS.md:155）。"
+        },
+        "published_interval_problem": [
+          "README.md:203 の下端 113 は系列 A の最小値、上端 118 は系列 B の中央値の丸めである。",
+          "系列 A の最大値 121.46 と系列 B の最小値 110.05 はどちらも区間外に落ちている。",
+          "したがって 113〜118 はどちらの系列の範囲でもなく、2 母集団の混合から作られた区間である。",
+          "両系列を合わせた実際の包絡は 110.05〜121.46 GB/s（S_stream 上限仮定）である。"
+        ],
+        "assumption_sensitivity": {
+          "s_stream_upper_bytes": 7365558464,
+          "s_stream_lower_bytes": 6539804864,
+          "envelope_under_upper_assumption_gb_per_s": [
+            110.05,
+            121.46
+          ],
+          "envelope_under_lower_assumption_gb_per_s": [
+            97.71,
+            107.84
+          ],
+          "note": "S_stream 上限 / 下限のどちらが実態かは未確定（DR-0005 / U-06）。仮定を切り替えると区間は重ならない。"
+        },
+        "shared_limitation": "系列 A / B いずれも provenance_final は DERIVED であり、帯域を直接測定した値ではない。分子は token/s の観測値、分母は静的解析から求めた S_stream であり、その組合せに『上限ケース』という未確定の仮定が乗っている。"
+      }
+    },
+    {
+      "metric": "effective_weight_bandwidth",
+      "value": 121.46,
+      "unit": "GB/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "USER_OBSERVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "scope": "USER_OBSERVED 16.49 token/s × S_stream 上限の逆算",
+      "source": "results/baseline_m5_user_provided/provenance.json:derived_effective_weight_bandwidth",
+      "note": "同上。系列 A の上端。README.md:203 の「113〜118 GB/s」はこの 121.46 を区間に含めていない（MP-094 の series_separation を参照）。",
+      "forbidden_use": [
+        "M5 のメモリ帯域仕様値としての引用"
+      ],
+      "id": "MP-095",
+      "series": "A (USER_OBSERVED 16.49 token/s)"
+    },
+    {
+      "metric": "s_stream_upper",
+      "value": 7365558464,
+      "unit": "byte/token",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(静的解析からの導出)",
+      "model": "gemma4:12b",
+      "scope": "tied embedding を毎トークン全読みすると仮定した場合の転送必要量（常駐 0）",
+      "source": "results/manifest_gemma4_12b.json:physics.per_token_bytes_upper / DR-0005",
+      "note": "実行経路の計装による直接測定ではない。DR-0005 の反証条件が未解消。",
+      "id": "MP-096"
+    },
+    {
+      "metric": "s_stream_lower",
+      "value": 6539804864,
+      "unit": "byte/token",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(静的解析からの導出)",
+      "model": "gemma4:12b",
+      "scope": "埋め込み行列を lm_head として全読みしない場合の転送必要量（常駐 0）",
+      "source": "results/manifest_gemma4_12b.json:physics.per_token_bytes_lower",
+      "note": "lower / upper のどちらが実態かは未確定（DR-0005）。",
+      "id": "MP-097"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 0.6788351520713691,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=5.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-098"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 1.3576703041427383,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=10.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-099"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 1.629204364971286,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-100"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 2.172272486628381,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=16.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-101"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 3.3941757603568457,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-102"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 3.8014768515996673,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=28.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "入力 B_h2d は ASSUMED（実測ではない）。したがって本導出値も実機性能の主張には使えない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-103"
+    },
+    {
+      "metric": "t_max_upper_bound_case",
+      "value": 15.341674436812943,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "DERIVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:12b",
+      "scope": "T_max = B_h2d / S_stream（上限ケース）。B_h2d=113.0 GB/s。",
+      "source": "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows",
+      "note": "B_h2d=113 GB/s は USER_OBSERVED 15.35 token/s からの逆算値（MP-DERIVED）。二重の導出であり、独立した検証ではない。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-104"
+    },
+    {
+      "metric": "t_max",
+      "value": 0.6432868354887195,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=0 B（0%）/ B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-105"
+    },
+    {
+      "metric": "t_max",
+      "value": 1.3401809072681656,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=0 B（0%）/ B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-106"
+    },
+    {
+      "metric": "t_max",
+      "value": 0.857715780651626,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=4663549500 B（25%）/ B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-107"
+    },
+    {
+      "metric": "t_max",
+      "value": 1.786907876357554,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=4663549500 B（25%）/ B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-108"
+    },
+    {
+      "metric": "t_max",
+      "value": 1.286573670977439,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=9327099000 B（50%）/ B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-109"
+    },
+    {
+      "metric": "t_max",
+      "value": 2.6803618145363313,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=9327099000 B（50%）/ B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-110"
+    },
+    {
+      "metric": "t_max",
+      "value": 2.573147341954878,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=13990648500 B（75%）/ B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-111"
+    },
+    {
+      "metric": "t_max",
+      "value": 5.3607236290726625,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=13990648500 B（75%）/ B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-112"
+    },
+    {
+      "metric": "t_max",
+      "value": 6.432868354887195,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=16788778200 B（90%）/ B_h2d=12.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-113"
+    },
+    {
+      "metric": "t_max",
+      "value": 13.401809072681656,
+      "unit": "token/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "RESULTS_FILE",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "S_stream = per_token_demand_upper − resident。resident=16788778200 B（90%）/ B_h2d=25.0 GB/s。",
+      "source": "results/manifest_gemma4_31b.json:residency.rows",
+      "note": "B_h2d および resident は共に ASSUMED。",
+      "forbidden_use": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域",
+        "実推論 token/s"
+      ],
+      "id": "MP-114"
+    },
+    {
+      "metric": "rtx3060_vram_capacity",
+      "value": 12,
+      "unit": "GB",
+      "provenance": "DECLARED_SPEC",
+      "provenance_final": "DECLARED_SPEC",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "RTX 3060（未取得・公称）",
+      "scope": "ボード公称容量",
+      "source": "docs/ALSR_REQ_DESIGN.md §3.2 / Rev.02 §4.2",
+      "note": "実機で取得していない。Rev.02 §4.2 は実機取得値のみの使用を許可する。Gate R0 で実測が必要。",
+      "forbidden_use": [
+        "実効利用可能 VRAM としての使用"
+      ],
+      "id": "MP-115"
+    },
+    {
+      "metric": "pcie5_x16_bandwidth",
+      "value": 63,
+      "unit": "GB/s",
+      "provenance": "DECLARED_SPEC",
+      "provenance_final": "DECLARED_SPEC",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(規格値)",
+      "scope": "PCIe 5.0 x16 の規格上の帯域",
+      "source": "docs/EXPERIMENTS.md 2b.5 / README.md:223",
+      "note": "規格値であり実測ではない。405B 外挿の比較対象として引用されている。",
+      "id": "MP-116"
+    },
+    {
+      "metric": "ddr4_3200_theoretical_bandwidth",
+      "value": 51.2,
+      "unit": "GB/s",
+      "provenance": "DECLARED_SPEC",
+      "provenance_final": "DECLARED_SPEC",
+      "provenance_inputs": [
+        "(一次値・入力なし)"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(規格値)",
+      "scope": "DDR4-3200 の理論帯域",
+      "source": "docs/EXPERIMENTS.md「次に測るべきこと」2",
+      "note": "Rev.02 §4.2 は「4枚混載のため理論値をそのまま使用しない。必ず実測する」と規定。文書内では「実効値として扱わない」と正しく注記されている。",
+      "id": "MP-117"
+    },
+    {
+      "metric": "405b_ideal_4bit_size",
+      "value": 202.5,
+      "unit": "GB",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "scope": "405e9 param × 0.5 byte/param（理想 4bit）= 202.5 GB。設計書 Rev.01 が §2.4 で提示した見積り。",
+      "source": "docs/ALSR_REQ_DESIGN.md §2.4",
+      "note": "ALSR-A0-REM-03 で DECLARED_SPEC → DERIVED へ訂正した。202.5 GB はいかなる機器・規格の仕様値でもなく、405e9（公称パラメータ数 / ASSUMED）× 0.5 byte/param（理想 4bit という理想化 / ASSUMED）という算術の結果である。本文書の metric_types は DECLARED_SPEC を「仕様値」と定義しており、MP-115（ボード公称 VRAM）や MP-116（PCIe 5.0 x16 の規格帯域）と同列に置くのは誤分類であった。 この誤分類は下流に影響していた。A0-011 / MP-120 の「設計書の見積りより 20% 大きい」という比較は、実測値と仕様値の比較ではなく **DERIVED どうしの比較** である。分母側の 202.5 GB も、分子側の 243.7 GB と同じく仮定に依存する量であり、どちらか一方を基準として扱うことはできない。",
+      "id": "MP-118",
+      "corrected_by": "ALSR-A0-REM-03",
+      "previous_provenance": "DECLARED_SPEC",
+      "forbidden_use": [
+        "仕様値としての引用",
+        "比較の基準（不動点）としての扱い",
+        "実ファイルからの測定値としての引用"
+      ]
+    },
+    {
+      "metric": "bytes_per_param_q4km",
+      "value": 0.6017,
+      "unit": "byte/param",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "model": "gemma4:31b",
+      "scope": "text_bytes（18,654,198,000 B）÷ 公称パラメータ数 31e9 = 0.6017483。総テンソルバイトではなくテキスト側のみを分子に取った商である。",
+      "source": "docs/EXPERIMENTS.md:387 / README.md:221 / docs/KNOWN_LIMITATIONS.md:237",
+      "corrected_by": "ALSR-A0-REM-01",
+      "previous_scope": "total_tensor_bytes ÷ 公称パラメータ数（31B）",
+      "depends_on": [
+        "MP-020",
+        "公称パラメータ数 31e9 の仮定"
+      ],
+      "numerator": {
+        "field": "results/manifest_gemma4_31b.json:physics.text_bytes",
+        "value": 18654198000,
+        "unit": "byte",
+        "provenance": "MEASURED_M5"
+      },
+      "denominator": {
+        "field": "モデル名 gemma4:31b 由来の公称パラメータ数",
+        "value": 31000000000,
+        "unit": "param",
+        "provenance": "ASSUMED"
+      },
+      "alternative_basis": {
+        "note": "分子に total_tensor_bytes（vision tower 1,186,547,904 B = MP-021 と projector 12,386,304 B = MP-022 を含む）を取った場合の値。",
+        "field": "results/manifest_gemma4_31b.json:physics.total_tensor_bytes",
+        "depends_on": "MP-023",
+        "numerator_value": 19853132208,
+        "value": 0.640424,
+        "unit": "byte/param"
+      },
+      "note": "A0 初版は本値の scope を「total_tensor_bytes ÷ 公称パラメータ数」と記載していたが、19,853,132,208 ÷ 31e9 = 0.640424 であり 0.6017 にならない。0.6017 を与えるのは text_bytes（18,654,198,000 ÷ 31e9 = 0.6017483）である。ALSR-A0-REM-01 で分子を text_bytes に訂正した。値 0.6017 自体は変更していない。 分子の選択（text のみ / vision・projector を含む）は文書側で明示されておらず、405B Dense への外挿という用途では本来先に確定すべき前提である。シミュレータの per_token_bytes も text_bytes 基準で構成されている（results/run06-.../summary.json:throughput.per_token_bytes = 18,654,198,000）。 results/ に対応する証拠ファイルが存在しない。Markdown 文書内にのみ記載されている。Rev.02 §10.3 は全ての性能主張に evidence を要求する。未充足。 さらに docs/KNOWN_LIMITATIONS.md:237 および README.md:221 は本値を「実測」と表記しているが、分母がモデル名由来の ASSUMED である以上、分類は DERIVED が正しい。Rev.02 §5 の Provenance 誤表記に該当する（A0_CLAIM_LEDGER A0-011 = PROVENANCE_MISLABELED / D-34）。分母が公称値であることから、有効数字 4 桁での提示自体も精度の誤表示である。",
+      "forbidden_use": [
+        "実測値としての引用",
+        "分子の定義（text のみか総テンソルか）を示さない引用",
+        "4 桁精度での引用"
+      ],
+      "id": "MP-119"
+    },
+    {
+      "metric": "405b_extrapolated_size",
+      "value": 243.7,
+      "unit": "GB",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "DERIVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "scope": "MP-119（text_bytes 基準 0.6017483 byte/param）× 405e9 の線形外挿 = 243.708 GB。総テンソルバイト基準ではない。",
+      "source": "docs/EXPERIMENTS.md:396 / README.md:221",
+      "corrected_by": "ALSR-A0-REM-01",
+      "previous_scope": "0.6017 byte/param × 405e9 の線形外挿",
+      "depends_on": [
+        "MP-119"
+      ],
+      "alternative_basis": {
+        "note": "MP-119 の alternative_basis（total_tensor_bytes 基準 0.640424 byte/param）を用いた場合。",
+        "value": 259.4,
+        "unit": "GB"
+      },
+      "note": "ALSR-A0-REM-01 で依存元を MP-119 として明示し、scope の基準を text_bytes へ訂正した。値 243.7 自体は変更していない。 分子に total_tensor_bytes を取れば 259.4 GB となり、設計書 §2.4 の「理想 4bit で 202.5 GB」に対する超過は 20% ではなく 28% になる。すなわち「20% 大きい」という文言は分子の選択に依存しており、その選択は文書側で明示されていない。 results/ に対応する証拠ファイルが存在しない。Markdown 文書内にのみ記載されている。Rev.02 §10.3 は全ての性能主張に evidence を要求する。未充足。 入力の byte/param 自体が DERIVED（分母は ASSUMED）であり、二重の導出。Rev.02 固定5「405B は最終研究指標。早期実 Run は禁止」の範囲内の数理外挿である。 ALSR-A0-REM-03: 比較対象の 202.5 GB（MP-118）は DECLARED_SPEC ではなく DERIVED である。「設計書の見積りより 20% 大きい」は DERIVED どうしの比較であり、いずれの側も仮定に依存する。",
+      "forbidden_use": [
+        "405B の実現可能性の断定",
+        "実測値としての引用",
+        "超過率（20%）を基準非依存の事実として扱うこと"
+      ],
+      "id": "MP-120"
+    },
+    {
+      "metric": "405b_required_h2d_for_5tps",
+      "value": 1168.5,
+      "unit": "GB/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "DERIVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "scope": "(MP-120 の 243.708 GB − 常駐 10 GB) × 5 token/s = 1168.54 GB/s。text_bytes 基準の外挿値に依存する。",
+      "source": "docs/EXPERIMENTS.md:396 / README.md:223",
+      "corrected_by": "ALSR-A0-REM-01",
+      "previous_scope": "(243.7 GB − 常駐 10 GB) × 5 token/s",
+      "depends_on": [
+        "MP-120",
+        "MP-119",
+        "405B 外挿における常駐 10 GB の仮定（docs/EXPERIMENTS.md 2b.5）"
+      ],
+      "alternative_basis": {
+        "note": "MP-120 の alternative_basis（259.4 GB）を用いた場合。",
+        "value": 1246.9,
+        "unit": "GB/s"
+      },
+      "note": "ALSR-A0-REM-01 で依存元（MP-120 → MP-119、および常駐 10 GB）を明示し、scope の基準を text_bytes へ訂正した。値 1168.5 自体は変更していない。 total_tensor_bytes 基準では 1246.9 GB/s になる。いずれにせよ PCIe 5.0 x16 の 63 GB/s（MP-116 / DECLARED_SPEC）に対して 18〜20 倍であり、「単純な重みストリーミングでは足りない」という結論の向きは基準の選択で反転しない。 常駐 10 GB は ASSUMED（Rev.02 §6.5 の予算式による導出ではない / D-24）。 results/ に対応する証拠ファイルが存在しない。Markdown 文書内にのみ記載されている。Rev.02 §10.3 は全ての性能主張に evidence を要求する。未充足。 ALSR-A0-REM-03: depends_on から MP-084 を外した。MP-084 は run04 の config が持つ resident_bytes であり、数値は同じ 10 GB だが出所が異なる。本項が使っているのは docs/EXPERIMENTS.md 2b.5 の「常駐は 10 GB（RTX 3060 想定）」という文書上の仮定であって、Run 設定値から導いたものではない。同値であることを依存関係と取り違えていた。",
+      "forbidden_use": [
+        "405B の実現可能性の断定",
+        "必要帯域の確定値としての引用"
+      ],
+      "id": "MP-121"
+    },
+    {
+      "metric": "70B_extrapolated_demand",
+      "value": 42.1,
+      "unit": "GB",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "DERIVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "scope": "MP-119（text_bytes 基準 0.6017483 byte/param）× 70e9 の線形外挿 = 42.122 GB",
+      "source": "docs/EXPERIMENTS.md:394-395",
+      "corrected_by": "ALSR-A0-REM-01",
+      "previous_scope": "0.6017 byte/param による線形外挿",
+      "depends_on": [
+        "MP-119"
+      ],
+      "alternative_basis": {
+        "note": "total_tensor_bytes 基準（0.640424 byte/param）を用いた場合。",
+        "value": 44.8,
+        "unit": "GB"
+      },
+      "note": "ALSR-A0-REM-01 で依存元を MP-119 として明示し、scope の基準を text_bytes へ訂正した。値 42.1 自体は変更していない。 results/ に対応する証拠ファイルが存在しない。Markdown 文書内にのみ記載されている。Rev.02 §10.3 は全ての性能主張に evidence を要求する。未充足。 なお 70B は gemma4:31b とアーキテクチャも量子化構成も異なるため、線形外挿は形式的な当てはめであり予測ではない。",
+      "forbidden_use": [
+        "実測値としての引用",
+        "70B の実サイズの予測としての引用"
+      ],
+      "id": "MP-122"
+    },
+    {
+      "metric": "120B_extrapolated_demand",
+      "value": 72.2,
+      "unit": "GB",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "DERIVED",
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(数式導出)",
+      "scope": "MP-119（text_bytes 基準 0.6017483 byte/param）× 120e9 の線形外挿 = 72.210 GB（Dense 換算）",
+      "source": "docs/EXPERIMENTS.md:394-395",
+      "corrected_by": "ALSR-A0-REM-01",
+      "previous_scope": "0.6017 byte/param による線形外挿",
+      "depends_on": [
+        "MP-119"
+      ],
+      "alternative_basis": {
+        "note": "total_tensor_bytes 基準（0.640424 byte/param）を用いた場合。",
+        "value": 76.9,
+        "unit": "GB"
+      },
+      "note": "ALSR-A0-REM-01 で依存元を MP-119 として明示し、scope の基準を text_bytes へ訂正した。値 72.2 自体は変更していない。 results/ に対応する証拠ファイルが存在しない。Markdown 文書内にのみ記載されている。Rev.02 §10.3 は全ての性能主張に evidence を要求する。未充足。 「Dense 換算」という前提が文書側にあり、MoE 構成であれば per-token の需要はこの値と一致しない。",
+      "forbidden_use": [
+        "実測値としての引用",
+        "120B の実サイズの予測としての引用"
+      ],
+      "id": "MP-123"
+    },
+    {
+      "metric": "residency_speedup_31b",
+      "value": 2.16,
+      "unit": "倍",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "EMULATED",
+        "ASSUMED",
+        "MEASURED_M5"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "(EMULATED 値どうしの比)",
+      "model": "gemma4:31b",
+      "scope": "run06（常駐 0）の 1.329 token/s に対する run04（常駐 10 GB）の 2.864 token/s の比",
+      "source": "docs/EXPERIMENTS.md:345 / docs/DECISIONS.md:495 / README.md:216",
+      "note": "分子・分母とも EMULATED であり、入力の H2D 25 GB/s は ASSUMED。シミュレータ内部の一貫性を示すが、実機での改善率ではない。",
+      "forbidden_use": [
+        "RTX3060 上の実改善率",
+        "ALSR の対既存方式優位"
+      ],
+      "id": "MP-124"
+    },
+    {
+      "metric": "effective_weight_bandwidth",
+      "value": 117.59,
+      "unit": "GB/s",
+      "provenance": "DERIVED",
+      "provenance_final": "DERIVED",
+      "provenance_inputs": [
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "value_origin": "DOCS_ONLY",
+      "platform": "MacBook Air M5",
+      "model": "gemma4:12b",
+      "series": "B (MEASURED_M5 中央値 15.9653 token/s)",
+      "scope": "MEASURED_M5 中央値 15.965297430372907 token/s × S_stream 上限 7,365,558,464 B の逆算",
+      "source": "docs/EXPERIMENTS.md:155",
+      "added_by": "ALSR-A0-REM-02",
+      "note": "初版の台帳はこの値を欠いていた。README.md:203 の「113〜118 GB/s」の上端 118 はこの 117.59 の丸めであり、台帳に無いまま主張の根拠になっていた。ALSR-A0-REM-02 で追加した。 逆算値であり直接測定ではない。系列 B の min / max（110.05 / 119.45 GB/s）は本監査の再計算値であって、文書にも results/ にも存在しない（MP-094 の series_separation を参照）。 ALSR-A0-REM-03: depends_on の誤記を訂正した。初版は MP-008 を指していたが、MP-008 は decode_speed_mean（15.808370907972058 token/s）であり、本値の分子である中央値 15.965297430372907 token/s は **MP-007**（decode_speed_median）である。値 117.59 自体は中央値から計算されており変更していない（15.965297430372907 × 7,365,558,464 B = 117.59 GB/s）。平均を使っていれば 116.43 GB/s になる。",
+      "depends_on": [
+        "MP-007",
+        "S_stream 上限の仮定"
+      ],
+      "forbidden_use": [
+        "M5 のメモリ帯域仕様値としての引用",
+        "RTX 機の帯域推定",
+        "測定値としての引用"
+      ],
+      "id": "MP-125"
+    }
+  ],
+  "unknown_items": [
+    {
+      "item": "RTX 検証機の OS",
+      "gate": "R0"
+    },
+    {
+      "item": "CUDA Driver 版",
+      "gate": "R0"
+    },
+    {
+      "item": "CUDA Toolkit 版",
+      "gate": "R0"
+    },
+    {
+      "item": "GPU 型番（ボードメーカー含む）",
+      "gate": "R0"
+    },
+    {
+      "item": "VRAM 容量（実機取得値）",
+      "gate": "R0"
+    },
+    {
+      "item": "PCIe generation（実機 current link）",
+      "gate": "R0",
+      "note": "Rev.02 §4.2: MEG X570 UNIFY は GPU 配置により x16 / x8+x8 が変わる。公称値の使用は禁止。"
+    },
+    {
+      "item": "PCIe width（実機 current link）",
+      "gate": "R0",
+      "note": "同上"
+    },
+    {
+      "item": "RAM 帯域（DDR4-3200 CL22 96GB, 4枚混載の実測）",
+      "gate": "R0",
+      "note": "Rev.02 §4.2: 理論値をそのまま使わない。必ず実測。"
+    },
+    {
+      "item": "H2D bandwidth（実機実測）",
+      "gate": "R0"
+    },
+    {
+      "item": "temperature / clock / power",
+      "gate": "R0"
+    },
+    {
+      "item": "gemma4:31b の Ollama 実推論 baseline",
+      "gate": "(M5 では取得不能)",
+      "note": "19 GB > M5 の 16 GiB RAM。RTX 機（96GB RAM）でのみ取得可能。"
+    },
+    {
+      "item": "ページキャッシュ cold のファイル読み出し帯域",
+      "gate": "未計画",
+      "note": "results/bandwidth_m5.json は warm のみ。cold は SSD 律速。"
+    },
+    {
+      "item": "1 トークンあたりの実重み読み出し量（S_stream 下限/上限の確定）",
+      "gate": "Gate P0 / 実行経路計装",
+      "note": "DR-0005 の反証条件。llama.cpp 経路の計装が必要。"
+    }
+  ]
+}

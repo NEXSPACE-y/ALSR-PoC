@@ -1,0 +1,922 @@
+{
+  "_document": "A0_CLAIM_LEDGER",
+  "_gate": "A0",
+  "_mission": "ALSR-A0-RECOVERY-AUDIT-01",
+  "_generated_at": "2026-08-02 JST",
+  "_amendments": [
+    {
+      "amendment_mission": "ALSR-A0-REM-01",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / 次 Gate 進行は行っていない。",
+      "changes": [
+        "status に UNSUPPORTED_AS_WORDED / CONDITIONAL_DERIVATION_ONLY / EVIDENCE_PRESENT_NOT_REEXECUTED / INTERNAL_HASH_CONSISTENT_ONLY を追加した。",
+        "A0-002 / 003 / 006 / 008 / 009 / 010 を再判定した（いずれも SUPPORTED_WITH_SCOPE_NOTE → UNSUPPORTED_AS_WORDED）。",
+        "A0-011 を NO_EVIDENCE_FILE → PROVENANCE_MISLABELED へ変更した。",
+        "再実行を伴わない主張（A0-001 / 015 / 017）を EVIDENCE_PRESENT_NOT_REEXECUTED へ再分類した。",
+        "summary の集計を上記に合わせて再計算した。"
+      ]
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-02",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / README・KNOWN_LIMITATIONS 修正 / 次 Gate 進行は行っていない。",
+      "changes": [
+        "A0-002 を数値系列ごとに分離した（series_separation）。系列 A = USER_OBSERVED 2 サンプル 113.06 / 121.46 GB/s、系列 B = MEASURED_M5 5 サンプル 110.05〜119.45 GB/s（中央値 117.59）。両系列とも final provenance は DERIVED であり帯域の直接測定ではない。",
+        "A0-004 を SUPPORTED_WITH_SCOPE_NOTE → TEST_SOURCE_PRESENT_NOT_EXECUTED へ再判定し、evidence_verified を true → false に訂正した。status に TEST_SOURCE_PRESENT_NOT_EXECUTED を追加した。",
+        "A0-007 を A0-007A（公称容量比較）/ A0-007B（実 runtime 収容可否）/ A0-007C（ALSR 検証対象としての適否）へ分割した。MEASURED_RTX を持たない B は UNSUPPORTED_AS_WORDED とした。",
+        "summary の集計を上記に合わせて再計算した（18 → 20 件）。"
+      ]
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-03",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード変更 / build / test / benchmark / model 操作 / README・KNOWN_LIMITATIONS 修正 / 次 Gate 進行は行っていない。",
+      "trigger": "ALSR-A0-REM-02 が RED 裁定。指摘 5 件（Claim 主判定の残存誤り 1 / Provenance 誤分類 1 / 依存関係誤記 1 / 集計・Git 状態の内部不整合 / パス連続性のスコープ超過表現）の是正。",
+      "changes": [
+        "A0-018 を SUPPORTED → SUPPORTED_WITH_SCOPE_NOTE へ再判定した。初版 note の「この宣言に正面から違反する記述は見つからなかった」は、同台帳が A0-003 を『PCIe の性能』の主張として UNSUPPORTED_AS_WORDED / HIGH と判定していることと矛盾していた。当該記述を削除し、compliance フィールドで宣言の存在と遵守を分離した。",
+        "summary の集計を再計算した。無条件の SUPPORTED は 0 件になった。"
+      ],
+      "values_changed": "無し。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-04",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード / テスト / ベンチマーク / results/ / README.md / KNOWN_LIMITATIONS.md は変更・実行していない。",
+      "trigger": "ALSR-A0-REM-03 が RED 裁定。残存指摘 5 件（D-53〜D-57）の是正。",
+      "changes": [
+        "A0-017 を A0-017A（静的なバイト数比較 / EVIDENCE_PRESENT_NOT_REEXECUTED）と A0-017B（実行可否 / UNSUPPORTED_AS_WORDED + NO_EVIDENCE_FILE）へ分割した。分割元は status = SPLIT として集計外にした（D-53）。",
+        "A0-017A の evidence に manifest_gemma4_31b.json（左辺）を追加した。初版は environment_m5.json のみで、比較の左辺に対応する証拠が欠けていた。",
+        "summary.note の「20 件のうち、証拠が主張を文言どおりに支えているものは 1 件も無い」を削除し、EVIDENCE_PRESENT_NOT_REEXECUTED の意味を取り違えない表現へ訂正した（D-56）。",
+        "summary の集計を現物から再計算した。"
+      ],
+      "values_changed": "無し。"
+    },
+    {
+      "amendment_mission": "ALSR-A0-REM-05",
+      "amended_at": "2026-08-02 JST",
+      "scope": "docs/recovery/ の A0 成果物 5 点のみ。コード / テスト / ベンチマーク / results/ / README.md / KNOWN_LIMITATIONS.md は変更・実行していない。",
+      "trigger": "ALSR-A0-REM-04 が RED 裁定。残存指摘 3 件（D-58〜D-60）の是正。",
+      "changes": [
+        "A0-017B の note から、Evidence / Provenance を持たない Ollama / llama.cpp の mmap 挙動および macOS の swap / compressed memory / overcommit に関する断定を削除した（D-58）。",
+        "A0-017B の判定根拠を、実行記録が存在せず、静的な容量比較だけでは実行不能を導けないという確認済み範囲に限定した。"
+      ],
+      "values_changed": "metrics[].value、既存 Evidence、既存の測定値は変更していない。Claim の判定・件数も変更していない。"
+    }
+  ],
+  "_basis": "Rev.02 §10.3 Claim Ledger / §14 実施5 / 固定6",
+  "_method": [
+    "Rev.02 §14 実施5 が指定する検索語（実測 / token/s / RTX / PCIe / resident / GREEN / 完了 / 改善）で",
+    "docs/ README.md configs/ scripts/ tools/ src/ include/ tests/ backends/ を全文検索し、",
+    "性能・成立性に関する主張を抽出した。docs/ALSR_REQ_DESIGN.md（設計書 Rev.1.1 原文）は",
+    "主張の発信源ではなく引用元であるため、原文内のヒットは主張として計上していない。",
+    "status は本監査時点の評価であり、GREEN/RED の裁定ではない（裁定は豆虎Gate）。"
+  ],
+  "_status_values": {
+    "SUPPORTED": "主張の範囲内で証拠が存在し、provenance と整合している",
+    "SUPPORTED_WITH_SCOPE_NOTE": "証拠は存在するが、文書上の表現が scope を超えて読める",
+    "UNSUPPORTED_AS_WORDED": "文言どおりに読んだ主張を裏付ける証拠が無い。scope を注記すれば成立する部分が残る場合でも、書かれている文そのものは成立していない（SUPPORTED_WITH_SCOPE_NOTE より重い）",
+    "CONDITIONAL_DERIVATION_ONLY": "値は測定ではなく、明示された仮定の下でのみ成立する導出である。仮定が変われば値も変わる",
+    "EVIDENCE_PRESENT_NOT_REEXECUTED": "証拠ファイルは results/ に存在するが、本監査はそれを再実行して再現したわけではない。ファイルの存在と内容の読み出しのみを確認した",
+    "INTERNAL_HASH_CONSISTENT_ONLY": "hash の突合は同一 Pack 内の記録値と実ファイルの間でのみ成立している。外部アンカー（remote / 署名 / 独立タイムスタンプ）が無いため、改変の不在を示すものではない",
+    "TEST_SOURCE_PRESENT_NOT_EXECUTED": "主張の根拠がテストコードとしてリポジトリ内に存在するが、そのテストは本監査のどの Mission でも実行されておらず、実行結果の Evidence Pack も results/ に存在しない（EVIDENCE_PRESENT_NOT_REEXECUTED とは異なり、参照できる実行結果がそもそも無い）",
+    "PROVENANCE_MISLABELED": "provenance の表記が実際の出自と異なる",
+    "NO_EVIDENCE_FILE": "主張に対応する証拠ファイルが results/ に存在しない",
+    "SELF_DECLARED_NOT_AUDITED": "実装者の自己申告であり監査を経ていない（Rev.02 固定7）"
+  },
+  "_status_assignment_rule": [
+    "status は 1 件につき 1 つの主判定である。同時に当てはまる他の判定は status_secondary に列挙する。",
+    "主判定は「その主張について最も重い欠落」を選ぶ。文言が証拠を超えている場合は UNSUPPORTED_AS_WORDED が、",
+    "出自の表記が誤っている場合は PROVENANCE_MISLABELED が、他の判定より優先する。",
+    "TEST_SOURCE_PRESENT_NOT_EXECUTED は、参照できる実行結果がそもそも存在しない場合に用いる。",
+    "EVIDENCE_PRESENT_NOT_REEXECUTED（実行結果は在るが再現していない）より重い。",
+    "EVIDENCE_PRESENT_NOT_REEXECUTED は、evidence が results/ 配下を指す全ての主張に当てはまる。",
+    "本 Gate A0 は benchmark 再実行を禁じられており（Rev.02 §14）、再現は 1 件も行っていないためである。",
+    "他により重い欠落がある主張では status_secondary に置き、主判定にはしない。",
+    "宣言・自己制限の主張では、宣言の存在と遵守を分けて判定する。存在するだけでは SUPPORTED にしない（A0-018 / D-48）。"
+  ],
+  "claims": [
+    {
+      "claim_id": "A0-001",
+      "claim": "gemma4:12b の GGUF 解析は重複 0 / 欠落 0 / 全バイト説明可能で通った。テンソル 667 個、unknown 0。",
+      "source": "README.md:201-202 / docs/EXPERIMENTS.md:113-127",
+      "scope": "gemma4:12b の GGUF v3 静的解析のみ。実行経路の検証ではない。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5"
+      ],
+      "evidence": [
+        "results/manifest_gemma4_12b.json",
+        "results/gguf_gemma4_12b.json"
+      ],
+      "evidence_verified": true,
+      "status": "EVIDENCE_PRESENT_NOT_REEXECUTED",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED",
+      "note": "証拠ファイル 2 点は results/ に存在し、内容も主張と一致する。ただし本監査は GGUF 解析器を再実行しておらず（Rev.02 §14 が benchmark / build を禁じている）、確認したのは記録されたファイルの内容であって解析の再現ではない。解析器そのものの正しさは Gate M2 の認定事項である。",
+      "forbidden_extrapolation": [
+        "他アーキテクチャでの分類器の正しさ",
+        "実行順序の正しさ",
+        "解析器の再現性の確認済み扱い"
+      ]
+    },
+    {
+      "claim_id": "A0-002",
+      "claim": "M5 のユニファイドメモリは重み供給に 113〜118 GB/s を出している。",
+      "source": "README.md:203-204 / docs/EXPERIMENTS.md:155,161",
+      "scope": "token/s の観測値を S_stream 上限で割り戻した逆算値。直接測定ではない。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "DERIVED"
+      ],
+      "evidence": [
+        "results/baseline_m5_user_provided/provenance.json",
+        "results/baseline_m5.json:generation_token_per_s"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "split_by": "ALSR-A0-REM-02",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "「重み供給に 113〜118 GB/s を出している」という文は帯域の測定結果として読める。しかし帯域は一度も測定されておらず、存在するのは token/s を S_stream 上限で割り戻した商である。文言どおりの主張を裏付ける証拠は無い。 ALSR-A0-REM-02 で、この主張が 2 つの異なる母集団の値を 1 つの区間に混ぜていることが判明したため、数値系列ごとに A0-002A / A0-002B へ分離した（series_separation を参照）。区間の下端 113 は系列 A の最小値、上端 118 は系列 B の中央値の丸めであり、系列 A の最大値 121.46 と系列 B の最小値 110.05 はどちらも区間の外に落ちる。すなわち 113〜118 はどちらの系列の範囲でもない。 加えて両系列とも S_stream 上限ケース（tied embedding 全読み）という未確定の仮定に依存し、下限ケースを取ると包絡は 97.71〜107.84 GB/s へ移って上限ケースの区間と重ならない（docs/DECISIONS.md:210 の 100.38 GB/s は系列 A の下端に下限仮定を当てた値）。DR-0005 と provenance.json が逆算であることを明記している点は適切だが、README.md:203 の太字断定形はその注記に到達しない読者に対して直接測定と読める。",
+      "series_separation": {
+        "_note": "ALSR-A0-REM-02 item 1。両系列とも final provenance は DERIVED であり、帯域の直接測定ではない。",
+        "common": {
+          "formula": "実効重み供給帯域 = 観測 token/s × S_stream",
+          "s_stream_upper_bytes": 7365558464,
+          "s_stream_lower_bytes": 6539804864,
+          "final_provenance": "DERIVED",
+          "note": "分子は token/s の観測値、分母側の S_stream は GGUF 静的解析（MEASURED_M5）から求めた量に『上限ケース』という ASSUMED の選択を掛けたものである。帯域計を当てた測定は 1 件も存在しない。"
+        },
+        "A0-002A": {
+          "series": "A",
+          "input_provenance": "USER_OBSERVED",
+          "population": "ユーザーがターミナル画面で観測した 2 回の Run",
+          "n": 2,
+          "token_per_s": [
+            15.35,
+            16.49
+          ],
+          "derived_gb_per_s": [
+            113.06,
+            121.46
+          ],
+          "metrics": [
+            "MP-094",
+            "MP-095"
+          ],
+          "status": "UNSUPPORTED_AS_WORDED",
+          "status_secondary": [
+            "CONDITIONAL_DERIVATION_ONLY"
+          ],
+          "supported_restatement": "S_stream 上限を仮定した場合、ユーザー観測 2 サンプル（15.35 / 16.49 token/s）から逆算される実効重み供給帯域は 113.06 GB/s と 121.46 GB/s である。",
+          "note": "n=2 であり、区間ではなく 2 点である。README.md:203 の区間は上端 121.46 を含めていない。本 PoC のスクリプト取得値ではなく画面からの転記である（MP-001 / MP-004）。"
+        },
+        "A0-002B": {
+          "series": "B",
+          "input_provenance": "MEASURED_M5",
+          "population": "scripts/baseline_m5.sh による warm-up 除外 5 サンプル",
+          "n": 5,
+          "token_per_s_min_median_max": [
+            14.940811334784701,
+            15.965297430372907,
+            16.217882178986503
+          ],
+          "derived_gb_per_s_min_median_max": [
+            110.05,
+            117.59,
+            119.45
+          ],
+          "metrics": [
+            "MP-125"
+          ],
+          "status": "UNSUPPORTED_AS_WORDED",
+          "status_secondary": [
+            "CONDITIONAL_DERIVATION_ONLY",
+            "NO_EVIDENCE_FILE"
+          ],
+          "supported_restatement": "S_stream 上限を仮定した場合、M5 実測 5 サンプルの中央値 15.9653 token/s から逆算される実効重み供給帯域は 117.59 GB/s である（同系列の min / max は 110.05 / 119.45 GB/s）。",
+          "note": "文書に現れるのは中央値由来の 117.59 のみ（docs/EXPERIMENTS.md:155）であり、results/ に逆算結果のファイルは無い（value_origin = DOCS_ONLY）。min / max の 110.05 / 119.45 は本監査の再計算値である。初版の台帳は 117.59 を項目として持っておらず、README の上端 118 の出所が台帳に無いまま主張の根拠になっていた。ALSR-A0-REM-02 で MP-125 として追加した。"
+        },
+        "envelope": {
+          "under_s_stream_upper_assumption_gb_per_s": [
+            110.05,
+            121.46
+          ],
+          "under_s_stream_lower_assumption_gb_per_s": [
+            97.71,
+            107.84
+          ],
+          "note": "S_stream 上限 / 下限のどちらが実態かは未確定（DR-0005 / U-06）。2 つの包絡は重ならない。"
+        }
+      },
+      "supported_restatement": "S_stream 上限（7,365,558,464 B/token）を仮定した場合、M5 の観測 token/s から逆算される実効重み供給帯域は、ユーザー観測系列で 113.06 / 121.46 GB/s、M5 実測 5 サンプル系列で 110.05〜119.45 GB/s（中央値 117.59）である。いずれも DERIVED であり帯域の直接測定ではない。S_stream 下限を仮定すると包絡は 97.71〜107.84 GB/s へ移る。",
+      "forbidden_extrapolation": [
+        "M5 のメモリ帯域仕様値としての引用",
+        "RTX 機の RAM 帯域の推定",
+        "測定値としての引用",
+        "2 系列を 1 つの区間として提示すること"
+      ]
+    },
+    {
+      "claim_id": "A0-003",
+      "claim": "PCIe 経由で毎トークン全重みを流す方式は、PCIe 3.0 で 1.63 tok/s、PCIe 4.0 で 3.39 tok/s が転送だけで確定する。",
+      "source": "README.md:205-207 / docs/EXPERIMENTS.md:162-164 / docs/KNOWN_LIMITATIONS.md:112-120",
+      "scope": "B_h2d = 12 / 25 GB/s を入力とした T_max = B_h2d / S_stream の計算結果。",
+      "required_provenance": [
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "DERIVED",
+        "ASSUMED"
+      ],
+      "evidence": [
+        "results/manifest_gemma4_12b.json:bandwidth_ceiling.rows"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "HIGH",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "「PCIe 3.0 で 1.63 tok/s、PCIe 4.0 で 3.39 tok/s が転送だけで確定する」は、実在の PCIe 世代における到達値の断定として読める。しかし PCIe に関する実測は 1 件も存在せず（MEASURED_RTX = 0）、12 / 25 GB/s は configs のファイル名で pcie3 / pcie4 と命名された ASSUMED 値である。Rev.02 §4.2 は「RTX3060 だから PCIe4.0 x16」という推定を明示的に禁止し実機取得値のみを許可しており、§5.2 は「25GB/s設定でPCIe性能を測定した」を禁止表現として挙げる。文言どおりの主張は現時点で成立しない。除算そのものが誤っているのではなく、入力が仮定である以上『確定する』と言えないという意味である。MEG X570 UNIFY は GPU 配置により x16 / x8+x8 が変わり得るため、Gate R0 で current link gen/width と H2D 実測を取得するまで値域も定まらない。",
+      "supported_restatement": "B_h2d = 12 GB/s と仮定した場合 T_max = 1.63 tok/s、25 GB/s と仮定した場合 T_max = 3.39 tok/s である（転送のみの理想上限。カーネル実行・同期・KV キャッシュを含まない）。",
+      "forbidden_extrapolation": [
+        "RTX3060 の実性能",
+        "PCIe 実効帯域の主張",
+        "ALSR の対既存方式優位",
+        "PCIe 世代名との対応付け"
+      ]
+    },
+    {
+      "claim_id": "A0-004",
+      "claim": "平均供給帯域が平均消費帯域を下回るとき、深度 2〜16 のどれでも枯渇する。適応制御でも消えない。",
+      "source": "README.md:208-209 / docs/EXPERIMENTS.md:264-276 / docs/KNOWN_LIMITATIONS.md:14-15",
+      "scope": "仮想時間シミュレータ内での挙動。実 GPU / 実 PCIe での検証ではない。",
+      "required_provenance": [
+        "EMULATED"
+      ],
+      "actual_provenance": [
+        "EMULATED"
+      ],
+      "evidence": [
+        "tests/stress/test_stress.cpp"
+      ],
+      "evidence_verified": false,
+      "status": "TEST_SOURCE_PRESENT_NOT_EXECUTED",
+      "status_secondary": [
+        "NO_EVIDENCE_FILE"
+      ],
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-02",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "初版は本件を SUPPORTED_WITH_SCOPE_NOTE とし evidence_verified = true としていたが、これは誤りである。確認できたのは tests/stress/test_stress.cpp というファイルが存在し、そこに 8 つの物理的主張がテストとして書かれていることだけであり、そのテストが通ることは確認していない。 (1) 本 Gate A0 / REM-01 / REM-02 はいずれも test 実行を禁じられており、監査側で 1 度も実行していない。(2) 過去の実行結果も results/ に Evidence Pack として保存されていない（Rev.02 §10.1 の Run 保存形式に沿った証拠が無い。D-42）。したがって『テストが存在する』と『テストが通った』の間に、本台帳が参照できる証拠は無い。 主張の内容自体は数理的に自明な性質（有限バッファは平均不足を隠せない）であり反証は想定しにくいが、A0 は自明さを証拠の代わりにしない。evidence_verified を false に訂正した。 EVIDENCE_PRESENT_NOT_REEXECUTED ではなく TEST_SOURCE_PRESENT_NOT_EXECUTED を用いる理由は、前者が『参照できる実行結果が存在する』ことを前提にするのに対し、本件はその実行結果自体が存在しないためである。",
+      "supported_restatement": "tests/stress/test_stress.cpp に、深度 2〜16 で平均供給不足時に枯渇が消えないことを検査するテストが記述されている。そのテストの実行結果は本台帳の参照範囲に存在しない。",
+      "forbidden_extrapolation": [
+        "実 GPU の待機挙動",
+        "ALSR が既存方式より優れること",
+        "テストが PASS したことの主張",
+        "シミュレータが当該性質を再現したことの主張"
+      ]
+    },
+    {
+      "claim_id": "A0-005",
+      "claim": "数理モデル（T_max = B / S_stream）とシミュレータの出力が 1% 以内で一致する。",
+      "source": "README.md:210 / docs/EXPERIMENTS.md:231-240 / docs/DECISIONS.md:490-494",
+      "scope": "同一の仮定入力（B_h2d、S_stream）を用いた式とシミュレータの自己整合確認。",
+      "required_provenance": [
+        "EMULATED",
+        "DERIVED"
+      ],
+      "actual_provenance": [
+        "EMULATED",
+        "DERIVED"
+      ],
+      "evidence": [
+        "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json",
+        "results/run04-31b-resident10-pcie4-596595facb61/summary.json",
+        "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json"
+      ],
+      "evidence_verified": true,
+      "status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "status_secondary": [
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "note": "式とシミュレータは同じ仮定帯域を入力に取るため、一致は実装の自己整合を示すのであって、モデルが物理を正しく表していることの独立検証ではない。docs/EXPERIMENTS.md:238-240 はこれを『式と実装が独立に同じ答えを出している』と表現しているが、入力が共通である以上『独立』ではない。本監査はシミュレータを再実行しておらず、確認したのは保存済み summary.json の記載値である。",
+      "forbidden_extrapolation": [
+        "数理モデルが実機を予測できること"
+      ]
+    },
+    {
+      "claim_id": "A0-006",
+      "claim": "単一コアの CRC32C（11.77 GB/s）は PCIe 4.0（20〜25 GB/s）より遅い。全 Chunk のホスト側 checksum を線速で回せない。",
+      "source": "README.md:211-212 / docs/KNOWN_LIMITATIONS.md:33-53",
+      "scope": "M5 上の CRC32C 実測 vs PCIe 4.0 の想定帯域。",
+      "required_provenance": [
+        "MEASURED_M5",
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5",
+        "ASSUMED"
+      ],
+      "evidence": [
+        "results/bandwidth_m5.json:measurements[crc32c]"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "後半の「全 Chunk のホスト側 checksum を線速で回せない」は ALSR の実行環境（RTX 検証機 / Ryzen 7 5700X）についての結論として読めるが、その機体の CRC32C 性能も PCIe 実効帯域も測定されていない。前半の比較も、左辺 11.77 GB/s は MEASURED_M5 で確定する一方、右辺「PCIe 4.0（20〜25 GB/s）」は ASSUMED であり、両辺の出自が異なる。文言どおりの主張（実行環境で線速に追随できない）を裏付ける証拠は現時点で無い。M5 上の CRC32C 単一コア性能という左辺だけが確定事実であり、それを RTX 検証機へ持ち込むことは Rev.02 §4.2 の趣旨に反する。結論の向き自体は Gate R0 の実測で覆る見込みが小さいが、A0 では見込みを根拠にしない。",
+      "supported_restatement": "M5 上の単一コア CRC32C は 11.77 GB/s（512 MiB バッファ / 7 回中央値）である。これが RTX 検証機の H2D 実効帯域を下回るか否かは、両辺とも Gate R0 の実測を要する。",
+      "forbidden_extrapolation": [
+        "RTX 検証機の CPU での CRC32C 性能",
+        "PCIe 実効帯域の確定",
+        "checksum 方式の採否判断の根拠としての引用"
+      ]
+    },
+    {
+      "claim_id": "A0-007",
+      "claim": "gemma4:12b (6.86 GiB) は RTX 3060 の 12 GB VRAM に収まる。このモデルで ALSR の優位を語ることはできない。",
+      "source": "README.md:213-215 / docs/KNOWN_LIMITATIONS.md:71-77 / docs/DECISIONS.md:351-372",
+      "scope": "（本項は分割済み。A0-007A / A0-007B / A0-007C を参照）",
+      "required_provenance": [],
+      "actual_provenance": [],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "SPLIT",
+      "split_by": "ALSR-A0-REM-02",
+      "split_into": [
+        "A0-007A",
+        "A0-007B",
+        "A0-007C"
+      ],
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "初版は 3 つの異なる主張を 1 件として台帳化していた。(A) 公称容量との数値比較、(B) 実 runtime で収容できるか、(C) ALSR の検証対象として適切か、は必要な証拠の種類が異なる。A は算術、B は MEASURED_RTX、C は設計判断である。1 件にまとめると、A が成立していることを根拠に B まで成立しているように読める。ALSR-A0-REM-02 で 3 件へ分離した。集計上、本 A0-007 は件数に数えない（status = SPLIT）。",
+      "forbidden_extrapolation": []
+    },
+    {
+      "claim_id": "A0-007A",
+      "claim": "gemma4:12b の総テンソルバイトは 6.86 GiB であり、RTX 3060 の公称 VRAM 容量 12 GB より小さい。",
+      "source": "README.md:213 / docs/KNOWN_LIMITATIONS.md:71-77",
+      "scope": "静的なバイト数と公称容量の算術比較。runtime の挙動には触れない。",
+      "required_provenance": [
+        "MEASURED_M5",
+        "DECLARED_SPEC"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5",
+        "DECLARED_SPEC"
+      ],
+      "evidence": [
+        "results/manifest_gemma4_12b.json:physics.total_tensor_bytes",
+        "A0_METRIC_PROVENANCE MP-115"
+      ],
+      "evidence_verified": true,
+      "status": "EVIDENCE_PRESENT_NOT_REEXECUTED",
+      "created_by": "ALSR-A0-REM-02",
+      "note": "分割された 3 件のうち唯一、必要な証拠が揃っている主張である。左辺 6.86 GiB は GGUF 静的解析（MEASURED_M5）、右辺 12 GB はボード公称（DECLARED_SPEC / MP-115）。比較そのものは算術であり、追加の仮定を要しない。ただし本監査は GGUF 解析を再実行しておらず、確認したのは manifest の記載値である。この主張は『公称容量との比較』以上のことを述べていないため、実機の実効容量が未取得であることは本項の欠落にはならない。",
+      "forbidden_extrapolation": [
+        "実 runtime での収容可否（A0-007B）",
+        "実効利用可能 VRAM の確定"
+      ]
+    },
+    {
+      "claim_id": "A0-007B",
+      "claim": "gemma4:12b は RTX 3060 の VRAM に収まる（実行時に収容できる）。",
+      "source": "README.md:213「RTX 3060 の 12 GB VRAM に**収まる**」/ docs/DECISIONS.md:351-372",
+      "scope": "実 runtime での収容可否。CUDA コンテキスト・ドライバ予約・KV キャッシュ・アクティベーション・ring buffer を含む実効容量に対する判定。",
+      "required_provenance": [
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5",
+        "DECLARED_SPEC"
+      ],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "NO_EVIDENCE_FILE"
+      ],
+      "severity": "MEDIUM",
+      "created_by": "ALSR-A0-REM-02",
+      "note": "「収まる」は runtime の収容可否を述べる文であり、必要なのは実効利用可能 VRAM である。しかし MEASURED_RTX は 0 件であり、RTX 検証機には一切アクセスしていない。判断材料は公称 12 GB（DECLARED_SPEC）のみで、そこから差し引くべき CUDA コンテキスト・ドライバ予約・KV キャッシュ・アクティベーション・ring buffer はいずれも未取得である。Rev.02 §6.5 が要求する VRAM 予算式による計算器も未実装（D-24）。したがって本主張は現時点で未支持である。 6.86 GiB と 12 GB の差が大きいため結論が反転する見込みは小さいが、A0 は見込みを証拠の代わりにしない。反転しない見込みが高いことと、証拠があることは別である。Gate R0 で実効容量を取得し、§6.5 の予算式に載せて初めて判定できる。",
+      "supported_restatement": "gemma4:12b の総テンソルバイト 6.86 GiB は RTX 3060 の公称 12 GB より小さい（A0-007A）。実行時に収容できるか否かは、実効利用可能 VRAM が未取得であるため判定できない。",
+      "forbidden_extrapolation": [
+        "実効利用可能 VRAM の確定",
+        "RTX3060 上での動作可否の断定",
+        "VRAM 予算の充足判定"
+      ]
+    },
+    {
+      "claim_id": "A0-007C",
+      "claim": "このモデルで ALSR の優位を語ることはできない。機構検証専用であり、VRAM 超過領域の検証対象は gemma4:31b へ移す。",
+      "source": "README.md:214-215 / docs/DECISIONS.md:351-372（DR-0009）",
+      "scope": "検証対象モデルの選定に関する設計判断と、それに伴う自己制限の宣言。",
+      "required_provenance": [],
+      "actual_provenance": [],
+      "evidence": [
+        "docs/DECISIONS.md DR-0009",
+        "results/manifest_gemma4_31b.json"
+      ],
+      "evidence_verified": true,
+      "status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "created_by": "ALSR-A0-REM-02",
+      "note": "自己に不利な事実を根拠に検証対象を絞る宣言であり、Rev.02 §0 および §11.2 の方針と方向が一致する。DR-0009 として正式に記録され、31B への移行も実施済みである。 scope note: 本宣言の理由として述べられているのは A0-007B（収まる）であり、その B が未支持である以上、理由は確定していない。ただし本項は『語ってはいけない』という制限であるため、B が誤っていた場合に生じるのは過剰に保守的だったという結果にとどまり、誤った主張は生じない。制限の方向は安全側である。",
+      "forbidden_extrapolation": [
+        "31B なら ALSR の優位を語れること",
+        "検証対象選定の妥当性の確定"
+      ]
+    },
+    {
+      "claim_id": "A0-008",
+      "claim": "常駐率が効く。31B で常駐 0 → 1.329 tok/s、常駐 10 GB → 2.864 tok/s（2.16 倍）。ただし GPU 待機率は 91.7% のままで PCIe 律速という状態は変わらない。",
+      "source": "README.md:216-217 / docs/EXPERIMENTS.md:339-350 / docs/DECISIONS.md:488-497",
+      "scope": "仮想時間シミュレータ内。入力の H2D 25 GB/s と常駐 10 GB はいずれも仮定値。",
+      "required_provenance": [
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "EMULATED",
+        "ASSUMED"
+      ],
+      "evidence": [
+        "results/run04-31b-resident10-pcie4-596595facb61/summary.json",
+        "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "HIGH",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "「常駐率が効く」および「1.329 → 2.864 tok/s（2.16 倍）」は、実行系の改善効果として読める。しかし 1.329 / 2.864 はいずれも仮想時間シミュレータの出力（EMULATED）であり、その入力である H2D 25 GB/s と常駐 10 GB はどちらも ASSUMED である。実機で常駐率を振った観測は存在しない。Rev.02 §11.2 は Simulator GREEN による『RTX性能 / LLM速度 / 実推論性能』の認定を禁じており、文言どおりの主張はこの禁止に触れる。加えて 2.16 倍という比は、シミュレータのモデル上ほぼ per_token_bytes の比（18.654 GB / 8.654 GB = 2.155）で決まる構造であり、常駐効果の発見というより入力設定の算術的帰結である。常駐 10 GB 自体も Rev.02 §6.5 の予算式による導出ではない（D-24）。後半の『PCIe 律速という状態は変わらない』（GPU 待機率 91.7%）は自己に不利な事実の明示であり適切。",
+      "supported_restatement": "シミュレータ上で per_token_bytes を 18.654 GB（常駐 0）から 8.654 GB（常駐 10 GB 仮定）へ減らすと、出力 token/s は 1.329 から 2.864 へ 2.16 倍になる。GPU 待機率は 91.7% で変わらない。いずれも EMULATED 値であり、入力の H2D 25 GB/s は ASSUMED である。",
+      "forbidden_extrapolation": [
+        "RTX3060 上の実改善率",
+        "ALSR の対既存方式優位",
+        "実推論 token/s",
+        "常駐率の最適値の決定"
+      ]
+    },
+    {
+      "claim_id": "A0-009",
+      "claim": "Chunk サイズは PCIe 律速の領域ではほとんど効かない。64〜512 MiB で token/s の幅は 1.2%。",
+      "source": "README.md:218-219 / docs/EXPERIMENTS.md:353-374 / docs/KNOWN_LIMITATIONS.md:87-104",
+      "scope": "仮想時間シミュレータ内。gemma4:31b / 常駐 10 GB / H2D 25 GB/s（仮定値）。",
+      "required_provenance": [
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "EMULATED",
+        "ASSUMED"
+      ],
+      "evidence": [
+        "results/sweep_chunk_sizes.json"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "「Chunk サイズは PCIe 律速の領域ではほとんど効かない」は、PCIe 律速という物理的状況一般についての結論として読める。実際に確認されているのは、Chunk サイズが平均帯域に影響しない構造を持つシミュレータが、その構造どおりの null result を返したという事実だけである。実機では発行回数・DMA 効率・ページフォールト局所性・pinned memory の有無が効くため、同じ結論になる保証はない。同一 sweep の壁時計は 64 MiB で 1.395 s、512 MiB で 8.318 s と 6 倍近く変わっており（docs/EXPERIMENTS.md:379-383）、粒度が実装コストに効くこと自体は同じ証拠の中に現れている。文言どおりの一般化は成立しない。",
+      "supported_restatement": "シミュレータ上で Chunk サイズを 64 / 128 / 256 / 512 MiB と振ったとき、出力 token/s は 2.830〜2.864（幅 1.2%）に収まった。gemma4:31b / 常駐 10 GB / H2D 25 GB/s はいずれも仮定入力である。",
+      "forbidden_extrapolation": [
+        "実 GPU での Chunk サイズ最適値",
+        "PCIe 発行オーバーヘッドの無視",
+        "Chunk サイズ設計の確定根拠としての引用"
+      ]
+    },
+    {
+      "claim_id": "A0-010",
+      "claim": "1024 MiB は VRAM 不足で測定不能。ring 4 × 1 GiB = 4.28 GB + 常駐 10 GB = 14.28 GB > 12 GB VRAM。大きな Chunk と高い常駐率は同じ VRAM を奪い合う。",
+      "source": "README.md:219-220 / docs/EXPERIMENTS.md:375-378 / docs/KNOWN_LIMITATIONS.md:106-108",
+      "scope": "シミュレータの device_memory_bytes = 12 GiB（仮定値）に対する制約。",
+      "required_provenance": [
+        "MEASURED_RTX"
+      ],
+      "actual_provenance": [
+        "EMULATED",
+        "ASSUMED"
+      ],
+      "evidence": [
+        "results/sweep_chunk_sizes.json:cases[fixed_1024mib]"
+      ],
+      "evidence_verified": true,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY",
+        "EVIDENCE_PRESENT_NOT_REEXECUTED"
+      ],
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "note": "「1024 MiB は VRAM 不足で測定不能」は、実機で VRAM が枯渇して測定できなかったという観測として読める。実際に起きたのは、シミュレータが自身の設定値 device_memory_bytes = 12,884,901,888 B（12 GiB / ASSUMED）に対する事前チェックで ERROR[invalid] を返して停止したことである。GPU は関与しておらず、測定は試みられていない。Rev.02 §4.1 は M5 での『VRAM starvation 率』の認定を禁じている。後半の『大きな Chunk と高い常駐率は同じ VRAM を奪い合う』という構造の指摘は Rev.02 §6.5 の主旨と一致し、有用である。ただし実効利用可能 VRAM（CUDA コンテキスト・ドライバ予約を引いた値）は未取得のため、閾値がどこに来るかは確定しない。",
+      "supported_restatement": "シミュレータの事前チェックは、常駐 10,000,000,000 B + ring 4,283,453,952 B = 14,283,453,952 B が device_memory_bytes 12,884,901,888 B（仮定値）を超えるとして 1024 MiB ケースを ERROR[invalid] で拒否した。実機での VRAM 枯渇は観測していない。",
+      "forbidden_extrapolation": [
+        "実 GPU の VRAM 枯渇挙動",
+        "実効利用可能 VRAM の確定",
+        "Chunk サイズ上限の確定"
+      ]
+    },
+    {
+      "claim_id": "A0-011",
+      "claim": "実測 0.6017 byte/param（Q4_K_M）から外挿すると 405B は 243.7 GB。設計書の「理想 4bit で 202.5 GB」より 20% 大きい。",
+      "source": "README.md:221-222 / docs/EXPERIMENTS.md:387-401 / docs/KNOWN_LIMITATIONS.md:237",
+      "scope": "gemma4:31b の text_bytes（18,654,198,000 B）を公称パラメータ数 31e9 で割った線形外挿。総テンソルバイトではない。",
+      "required_provenance": [
+        "MEASURED_M5",
+        "DERIVED"
+      ],
+      "actual_provenance": [
+        "DERIVED",
+        "ASSUMED"
+      ],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "PROVENANCE_MISLABELED",
+      "status_secondary": [
+        "NO_EVIDENCE_FILE",
+        "CONDITIONAL_DERIVATION_ONLY"
+      ],
+      "severity": "HIGH",
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "NO_EVIDENCE_FILE",
+      "note": "(1) 出自の誤表記が主判定である。docs/KNOWN_LIMITATIONS.md:237 および README.md:221 は 0.6017 byte/param を『実測』と表記するが、これは測定値ではなく商である。分子 text_bytes = 18,654,198,000 B は MEASURED_M5、分母 31e9 はモデル名（gemma4:31b）由来の ASSUMED であり、結果の分類は DERIVED でなければならない。分母が公称値である以上、有効数字 4 桁（0.6017）で示すこと自体も精度の誤表示である。(2) 分子の取り違えがある。A0 初版はこの値の scope を『total_tensor_bytes ÷ 公称パラメータ数』と記載していたが、実際に 0.6017 を与えるのは text_bytes である（18,654,198,000 ÷ 31e9 = 0.6017483）。total_tensor_bytes（19,853,132,208 B）を用いれば 0.640424 byte/param となり、405B 外挿は 243.7 GB ではなく 259.4 GB になる。すなわち『どのバイト量を分子に取るか』が未定義のまま数値だけが確定形で引用されている。vision tower（1,186,547,904 B）と projector（12,386,304 B）を含めるか否かは、405B Dense を対象とする外挿の前提として本来先に決めるべき事項である。(3) results/ に外挿結果の証拠ファイルが存在しない。0.6017 / 243.7 / 1168.5 は Markdown 内にのみ存在する。Rev.02 §10.3 は全ての性能主張に evidence を要求しており未充足（A0_METRIC_PROVENANCE MP-119〜MP-123 / D-32 / D-34）。(4) 405B の実ファイルは取得していないため Rev.02 固定5 には抵触しない（数理外挿のみ）。",
+      "supported_restatement": "gemma4:31b の text_bytes を公称 31e9 で割ると 0.6017 byte/param、total_tensor_bytes で割ると 0.640424 byte/param になる。前者を 405e9 へ線形外挿すると 243.7 GB、後者では 259.4 GB。いずれも DERIVED であり、分母は ASSUMED、分子の定義は未確定である。",
+      "forbidden_extrapolation": [
+        "405B の実現可能性の断定",
+        "実測値としての引用",
+        "分子の定義を示さない byte/param の引用"
+      ]
+    },
+    {
+      "claim_id": "A0-012",
+      "claim": "405B で 5 tok/s には 1.17 TB/s の H2D が要る（PCIe 5.0 x16 の 18 倍以上）。単純な重みストリーミングでは足りない。",
+      "source": "README.md:223 / docs/EXPERIMENTS.md:403-406",
+      "scope": "A0-011 の外挿値と常駐 10 GB（仮定）を入力とした算術。",
+      "required_provenance": [
+        "DERIVED"
+      ],
+      "actual_provenance": [
+        "DERIVED",
+        "ASSUMED",
+        "DECLARED_SPEC"
+      ],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "NO_EVIDENCE_FILE",
+      "status_secondary": [
+        "CONDITIONAL_DERIVATION_ONLY"
+      ],
+      "severity": "MEDIUM",
+      "note": "A0-011 と同じく証拠ファイルが無い。入力（byte/param、常駐 10 GB）がいずれも DERIVED / ASSUMED であるため三重の導出になる。さらに A0-011 の分子取り違えを引き継いでおり、total_tensor_bytes を基準に取れば必要帯域は 1168.5 GB/s ではなく 1246.9 GB/s になる。ただし結論の向き（単純ストリーミングでは桁が足りない）は Rev.02 §1.3「405B Dense が RTX3060 で実用速度になることを保証しない」および §6.4 と整合しており、基準の取り違えによって反転しない。否定側の主張である点で過大主張のリスクは低い。",
+      "forbidden_extrapolation": [
+        "405B の実現可能性の断定"
+      ]
+    },
+    {
+      "claim_id": "A0-013",
+      "claim": "現在の到達点: Phase 0-2 完了（M5 上の解析器・Chunk 計画・帯域シミュレータ）。",
+      "source": "README.md:14 / docs/EXPERIMENTS.md:1-3 / docs/KNOWN_LIMITATIONS.md:3",
+      "scope": "旧設計書 docs/ALSR_REQ_DESIGN.md（Rev.1.1）§11 の Phase 区分に対する実装者の自己申告。",
+      "required_provenance": [
+        "監査済 GREEN 裁定"
+      ],
+      "actual_provenance": [
+        "実装者の自己申告"
+      ],
+      "evidence": [
+        "docs/CONFORMANCE.md"
+      ],
+      "evidence_verified": false,
+      "status": "SELF_DECLARED_NOT_AUDITED",
+      "severity": "HIGH",
+      "note": "Rev.02 固定7『実装者の完了報告は監査結果ではない』/ §2.3『完了判定を自己発行する』の禁止 / §10.2『実装者の COMPLETED は監査済 GREEN ではない』に照らし、本主張は COMPLETED_NOT_AUDITED として扱う。加えて Rev.02 §0 は既存 Claude 成果物を一括して UNVERIFIED / A0 監査待ちと定めている。さらに『Phase 0-2』の区分は Rev.1.1 の Phase 体系であり、Rev.02 の Gate 体系（A0 / M1 / M2 / M3 / P0 / R0）へは自動的には対応しない。",
+      "forbidden_extrapolation": [
+        "GREEN 裁定",
+        "次 Gate への進行根拠"
+      ]
+    },
+    {
+      "claim_id": "A0-014",
+      "claim": "docs/CONFORMANCE.md における多数の「適合」判定（設計書 Rev.1.1 の全条項に対する自己監査）。",
+      "source": "docs/CONFORMANCE.md 全体",
+      "scope": "旧設計書 Rev.1.1 の条項に対する実装者による自己監査。",
+      "required_provenance": [
+        "ChatGPT による現物監査 + 豆虎Gate 裁定"
+      ],
+      "actual_provenance": [
+        "実装者の自己申告"
+      ],
+      "evidence": [
+        "docs/CONFORMANCE.md"
+      ],
+      "evidence_verified": false,
+      "status": "SELF_DECLARED_NOT_AUDITED",
+      "severity": "MEDIUM",
+      "note": "自己監査で 8 件の未達を自ら検出・記録している点（CONFORMANCE.md:17-32）は Rev.02 §0 の方針に沿う。ただし Rev.02 §2.2 の固定フローでは監査は ChatGPT、裁定は豆虎Gate であり、実装者の自己監査は裁定に代わらない。また対象条項が Rev.1.1 であるため、Rev.02 固有条項（§5 Provenance / §6.5 VRAM Budget / §6.6 Prefill-Decode 分離 / §7 Prior Art / §10 Evidence / §11 受入判定分離）は本自己監査の対象外である。",
+      "forbidden_extrapolation": [
+        "Rev.02 への適合",
+        "GREEN 裁定"
+      ]
+    },
+    {
+      "claim_id": "A0-015",
+      "claim": "必須ゲート（checksum 一致率 100% / Chunk 欠落 0 / 重複 0 / 順序違反 0 / unhandled error 0）を run01〜run06 の全 Run が PASS した。",
+      "source": "README.md:158-162 / results/all_runs.csv / 各 summary.json:mandatory_gates",
+      "scope": "旧設計書 Rev.1.1 §12.1 の必須ゲート。正確性の検査であり性能の認定ではない。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5"
+      ],
+      "evidence": [
+        "results/run01-gemma4-fixed-pcie4-29057ced221a/summary.json",
+        "results/run02-gemma4-adaptive-pcie3-fd058c7ee687/summary.json",
+        "results/run03-synthetic-adaptive-healthy-cc444f432f2d/summary.json",
+        "results/run04-31b-resident10-pcie4-596595facb61/summary.json",
+        "results/run05-31b-resident10-pcie3-c851259f505a/summary.json",
+        "results/run06-31b-resident0-pcie4-ef64f863d9ba/summary.json"
+      ],
+      "evidence_verified": true,
+      "status": "EVIDENCE_PRESENT_NOT_REEXECUTED",
+      "status_secondary": [
+        "INTERNAL_HASH_CONSISTENT_ONLY"
+      ],
+      "rejudged_by": "ALSR-A0-REM-01",
+      "previous_status": "SUPPORTED",
+      "note": "本監査で確認したのは、6 Run の summary.json に PASS が記録されていること、および同 Pack 内の metrics.jsonl の SHA-256 が summary.json の記録値と一致すること（不一致 0 件）である。Run そのものは再実行していない（Rev.02 §14 が benchmark 再実行を禁じている）ため、ゲートが実際に PASS することを本監査が再現したわけではない。また hash の突合は同一 Pack 内で閉じており、外部アンカー（remote / 署名 / 独立タイムスタンプ）が無いため、summary.json と metrics.jsonl が揃って差し替えられた場合は検出できない。results/ は .gitignore により非追跡であり、Git の履歴もアンカーにならない。checksum・欠落・重複・順序違反の検査自体は実バイトを流して行われており、Rev.02 §11.1 Component GREEN の条件に相当する内容だが、裁定は豆虎Gate による。",
+      "forbidden_extrapolation": [
+        "性能の認定",
+        "Simulator GREEN 以上の判定",
+        "改変が無いことの証明",
+        "監査による再現の主張"
+      ]
+    },
+    {
+      "claim_id": "A0-016",
+      "claim": "同一設定で run01 を 2 回実行し、wall_seconds 以外は完全一致。metrics.jsonl の SHA-256 も一致（再現性）。",
+      "source": "docs/EXPERIMENTS.md:255-262",
+      "scope": "仮想時間モデルの決定論性。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5"
+      ],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "NO_EVIDENCE_FILE",
+      "severity": "LOW",
+      "note": "2 回目の Run の Evidence Pack が results/ に残っていない（run01 のディレクトリは 1 つのみ、run_id サフィックスも異なる 29057ced221a）。docs/DECISIONS.md:173 と :224 は run01 の run_id を cc2b89940ac3 と記載しており、現存する 29057ced221a と一致しない。設定変更により run_id が変わった結果と推測されるが、A0 では推測で埋めない。再現性の主張自体は統合テストで固定されているとされるが、その証拠 Pack も results/ に無い。",
+      "forbidden_extrapolation": [
+        "実時間の再現性"
+      ]
+    },
+    {
+      "claim_id": "A0-017",
+      "claim": "31B は M5 の 16 GiB RAM に収まらないため、Ollama の実推論 baseline は取得できない。",
+      "source": "docs/KNOWN_LIMITATIONS.md:78-85 / docs/DECISIONS.md:403-409",
+      "scope": "（本項は分割済み。A0-017A / A0-017B を参照）",
+      "required_provenance": [],
+      "actual_provenance": [],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "SPLIT",
+      "split_by": "ALSR-A0-REM-04",
+      "split_into": [
+        "A0-017A",
+        "A0-017B"
+      ],
+      "previous_status": "EVIDENCE_PRESENT_NOT_REEXECUTED",
+      "note": "初版は 2 つの異なる主張を 1 件としていた。(A)『31B の総テンソル量が M5 の物理 RAM を超える』は静的なバイト数比較であり、(B)『Ollama の実推論 baseline は取得できない』は実行可否である。A は算術で確定するが、静的な容量比較は B を示す実行証拠ではない。1 件にまとめると A の成立が B の成立のように読める。A0-007 と同型の粒度不整合であり（D-47 / D-53）、ALSR-A0-REM-04 で 2 件へ分離した。集計上、本 A0-017 は件数に数えない（status = SPLIT）。ALSR-A0-REM-05 で未立証の runtime・OS 挙動の断定を削除した（D-58）。",
+      "forbidden_extrapolation": []
+    },
+    {
+      "claim_id": "A0-017A",
+      "claim": "gemma4:31b の総テンソル量 19,853,132,208 B は、M5 の物理 RAM 17,179,869,184 B を超える。",
+      "source": "docs/KNOWN_LIMITATIONS.md:78-85 / docs/DECISIONS.md:403-409",
+      "scope": "静的なバイト数どうしの算術比較。実行時の挙動には触れない。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "MEASURED_M5"
+      ],
+      "evidence": [
+        "results/manifest_gemma4_31b.json:physics.total_tensor_bytes",
+        "results/environment_m5.json:memory.memsize_bytes"
+      ],
+      "evidence_verified": true,
+      "status": "EVIDENCE_PRESENT_NOT_REEXECUTED",
+      "created_by": "ALSR-A0-REM-04",
+      "note": "19,853,132,208 B（18.49 GiB / 19.85 GB）> 17,179,869,184 B（16.00 GiB）。差は 2,673,263,024 B。両辺とも MEASURED_M5 であり、比較は追加の仮定を要しない算術である。 ただし本監査は GGUF 解析も環境収集も再実行しておらず、確認したのは記録されたファイルの値である。 environment_m5.json は git.commit が 'HEAD' の文字列のまま未解決であり（D-36）、収集経路の健全性という点で Run 配下の environment.json と同等ではない。同ファイルの memsize_bytes は数値ではなく文字列 \"17179869184\" として記録されている（機械可読性の問題であり、値自体は正しい）。 初版はこの evidence に manifest を含めておらず、比較の左辺に対応する証拠が欠けていた。ALSR-A0-REM-04 で両方を記載した。",
+      "forbidden_extrapolation": [
+        "実行可否の判定（A0-017B）",
+        "RTX 検証機（96GB RAM）での制約"
+      ]
+    },
+    {
+      "claim_id": "A0-017B",
+      "claim": "31B では Ollama の実推論 baseline を取得できない。",
+      "source": "docs/KNOWN_LIMITATIONS.md:78-85 / docs/DECISIONS.md:403-409",
+      "scope": "M5 上で Ollama を用いた 31B の実推論計測が実施可能かどうか、という実行可否の判定。",
+      "required_provenance": [
+        "MEASURED_M5"
+      ],
+      "actual_provenance": [
+        "DERIVED"
+      ],
+      "evidence": [],
+      "evidence_verified": false,
+      "status": "UNSUPPORTED_AS_WORDED",
+      "status_secondary": [
+        "NO_EVIDENCE_FILE"
+      ],
+      "severity": "MEDIUM",
+      "created_by": "ALSR-A0-REM-04",
+      "note": "「取得できない」は実行可否についての結論であるが、それを支える証拠が results/ に 1 件も存在しない。実行を試みた形跡がなく、失敗ログ・エラー出力・中断記録も存在しない。runtime 挙動も観測していないため、A0-017A の静的な容量比較だけから実行不能を導くことはできない。成立するのは『総テンソル量が物理 RAM を超える』までであり、『取得できない』ではない。ALSR-A0-REM-05 で、Evidence / Provenance を持たない runtime・OS 挙動の断定を削除した（D-58）。",
+      "supported_restatement": "gemma4:31b の総テンソル量は M5 の物理 RAM を超える（A0-017A）。この条件下で Ollama の実推論 baseline を取得できるかどうかは、実行を試みた記録が無いため判定できない。取得していないことは事実だが、取得できないことは示されていない。",
+      "forbidden_extrapolation": [
+        "実行不能であることの断定",
+        "31B が M5 上で動作しないことの主張",
+        "計測を行わない根拠としての引用"
+      ]
+    },
+    {
+      "claim_id": "A0-018",
+      "claim": "CUDA / PCIe の性能、Pinned Memory の効果、ALSR が既存方式より速いこと、出力品質 — これらは主張してはいけない。",
+      "source": "docs/KNOWN_LIMITATIONS.md:18-27",
+      "scope": "自己制限の宣言。",
+      "required_provenance": [],
+      "actual_provenance": [],
+      "evidence": [
+        "docs/KNOWN_LIMITATIONS.md"
+      ],
+      "evidence_verified": true,
+      "status": "SUPPORTED_WITH_SCOPE_NOTE",
+      "severity": "MEDIUM",
+      "rejudged_by": "ALSR-A0-REM-03",
+      "previous_status": "SUPPORTED",
+      "note": "宣言の存在と方向は適切である。Rev.02 §1.3 / §4.1 / §11.2 の禁止事項と一致する。 しかし初版の note は「この宣言に正面から違反する記述は見つからなかった」と書いており、これは本台帳自身の判定と矛盾する。A0-003（README.md:205-207「PCIe 3.0 で 1.63 tok/s、PCIe 4.0 で 3.39 tok/s が転送だけで確定する」）は、まさに本宣言が禁じている『CUDA / PCIe の性能』の主張である。同項は UNSUPPORTED_AS_WORDED / HIGH と判定され、D-22 では Rev.02 §5.2 の禁止表現に該当すると記録されている。すなわち **宣言は存在するが遵守されていない**。 したがって成立するのは『`docs/KNOWN_LIMITATIONS.md:18-27` に当該の自己制限が明記されている』ところまでであり、『その制限が守られている』ことではない。ALSR-A0-REM-03 で主判定を SUPPORTED から移し、矛盾する記述を削除した。 この再判定により、本台帳に無条件の SUPPORTED は 1 件も残らない。",
+      "supported_restatement": "docs/KNOWN_LIMITATIONS.md:18-27 に、CUDA / PCIe 性能・Pinned Memory の効果・対既存方式の優位・出力品質を主張しないという自己制限が明記されている。ただし README.md:205-207 はそのうち『PCIe の性能』に該当する主張を含んでおり、宣言は遵守されていない。",
+      "compliance": {
+        "declaration_present": true,
+        "declaration_observed": false,
+        "violating_claims": [
+          "A0-003"
+        ],
+        "related_deviations": [
+          "D-22",
+          "D-48"
+        ],
+        "note": "A0-008 / A0-009 / A0-010 も断定形が scope を超えるが、宣言が名指しする 4 項目（CUDA/PCIe 性能・Pinned Memory・対既存方式優位・出力品質）に正面から該当するのは A0-003 である。"
+      },
+      "forbidden_extrapolation": [
+        "宣言の存在をもって遵守されているとみなすこと"
+      ]
+    }
+  ],
+  "summary": {
+    "total_claims": 21,
+    "_counting_note": [
+      "初版は 18 件。ALSR-A0-REM-02 で A0-007 を、ALSR-A0-REM-04 で A0-017 を分割したため 21 件になった。",
+      "分割元の A0-007 / A0-017 は status = SPLIT として配列に残しているが、集計には数えない（claims 配列の要素数は 23）。",
+      "A0-002 も系列 A / B へ分離したが、こちらは 1 主張の内部構造の分離であり件数は増やしていない",
+      "（series_separation 内の A0-002A / A0-002B は独立の claim_id ではない）。",
+      "件数は目標値に合わせず、claims 配列の現物から再集計している。"
+    ],
+    "by_status": {
+      "SUPPORTED": 0,
+      "SUPPORTED_WITH_SCOPE_NOTE": 3,
+      "UNSUPPORTED_AS_WORDED": 8,
+      "CONDITIONAL_DERIVATION_ONLY": 0,
+      "EVIDENCE_PRESENT_NOT_REEXECUTED": 4,
+      "INTERNAL_HASH_CONSISTENT_ONLY": 0,
+      "TEST_SOURCE_PRESENT_NOT_EXECUTED": 1,
+      "PROVENANCE_MISLABELED": 1,
+      "NO_EVIDENCE_FILE": 2,
+      "SELF_DECLARED_NOT_AUDITED": 2
+    },
+    "by_status_including_secondary": {
+      "SUPPORTED": 0,
+      "SUPPORTED_WITH_SCOPE_NOTE": 3,
+      "UNSUPPORTED_AS_WORDED": 8,
+      "CONDITIONAL_DERIVATION_ONLY": 9,
+      "EVIDENCE_PRESENT_NOT_REEXECUTED": 11,
+      "INTERNAL_HASH_CONSISTENT_ONLY": 1,
+      "TEST_SOURCE_PRESENT_NOT_EXECUTED": 1,
+      "PROVENANCE_MISLABELED": 1,
+      "NO_EVIDENCE_FILE": 6,
+      "SELF_DECLARED_NOT_AUDITED": 2
+    },
+    "by_status_detail": {
+      "SUPPORTED_WITH_SCOPE_NOTE": [
+        "A0-005",
+        "A0-007C",
+        "A0-018"
+      ],
+      "UNSUPPORTED_AS_WORDED": [
+        "A0-002",
+        "A0-003",
+        "A0-006",
+        "A0-007B",
+        "A0-008",
+        "A0-009",
+        "A0-010",
+        "A0-017B"
+      ],
+      "EVIDENCE_PRESENT_NOT_REEXECUTED": [
+        "A0-001",
+        "A0-007A",
+        "A0-015",
+        "A0-017A"
+      ],
+      "TEST_SOURCE_PRESENT_NOT_EXECUTED": [
+        "A0-004"
+      ],
+      "PROVENANCE_MISLABELED": [
+        "A0-011"
+      ],
+      "NO_EVIDENCE_FILE": [
+        "A0-012",
+        "A0-016"
+      ],
+      "SELF_DECLARED_NOT_AUDITED": [
+        "A0-013",
+        "A0-014"
+      ],
+      "SPLIT (集計外)": [
+        "A0-007",
+        "A0-017"
+      ]
+    },
+    "by_severity": {
+      "HIGH": 4,
+      "MEDIUM": 10,
+      "LOW": 1,
+      "(未付与)": 6
+    },
+    "claims_requiring_MEASURED_RTX_but_lacking_it": [
+      "A0-003",
+      "A0-006",
+      "A0-007B",
+      "A0-008",
+      "A0-009",
+      "A0-010"
+    ],
+    "note": [
+      "MEASURED_RTX の証拠は 1 件も存在しない（A0_METRIC_PROVENANCE.json: MEASURED_RTX = 0）。",
+      "上記 6 件は Gate R0 の実測値が入るまで、実機性能に関する主張としては成立しない。",
+      "PROVENANCE_MISLABELED = 1 は A0-011（docs/KNOWN_LIMITATIONS.md:237 / README.md:221 の",
+      "『実測 0.6017 byte/param』）である。分子は text_bytes、分母は公称パラメータ数（ASSUMED）であり、",
+      "商の分類は DERIVED でなければならない。A0 初版はこの誤表記を A0-011 の note 内でのみ扱い、",
+      "status を NO_EVIDENCE_FILE のままにしていたため、集計上 PROVENANCE_MISLABELED = 0 と表示されていた。",
+      "ALSR-A0-REM-01 で主判定を PROVENANCE_MISLABELED へ移し、証拠不在は status_secondary に残した。",
+      "EVIDENCE_PRESENT_NOT_REEXECUTED が secondary 込みで 11 件になるのは、本 Gate が benchmark 再実行を",
+      "禁じられており、results/ 配下を evidence に持つ全ての主張が『存在確認のみ』の状態にあるためである。",
+      "すなわち本台帳の SUPPORTED 系判定はいずれも『監査が再現した』という意味を持たない。",
+      "ALSR-A0-REM-02 で 3 件の構造的な誤りを是正した。(1) A0-002 は 2 つの母集団の値を 1 区間に混ぜていた。",
+      "(2) A0-004 は evidence_verified = true としていたが、参照できる実行結果は存在しなかった。",
+      "(3) A0-007 は必要な証拠の種類が異なる 3 主張を 1 件にまとめており、算術で足りる A の成立が",
+      "MEASURED_RTX を要する B の成立のように読めていた。いずれも『証拠の粒度と主張の粒度が合っていない』",
+      "という同じ型の誤りである。",
+      "ALSR-A0-REM-03 で A0-018 を再判定した結果、**無条件の SUPPORTED は 0 件**になった。",
+      "ALSR-A0-REM-04 で、その直後に置いていた「20 件のうち、証拠が主張を文言どおりに支えているものは",
+      "1 件も無い」を削除した（D-56）。EVIDENCE_PRESENT_NOT_REEXECUTED は『証拠が主張を支えていない』",
+      "という判定ではなく、『証拠ファイルの存在と内容の一致は確認したが、本監査は再実行していない』",
+      "という判定である。両者を同一視すると、実在する証拠を過小に扱うことになる。正しくは以下である。",
+      "  - 無条件の SUPPORTED は 0 件。",
+      "  - 監査によって再現された主張も 0 件（本 Gate は benchmark 再実行を禁じられている）。",
+      "  - EVIDENCE_PRESENT_NOT_REEXECUTED の 4 件は、保存済み証拠の内容確認までが済んでいる。",
+      "  - 文言どおりに成立しないと判定したのは UNSUPPORTED_AS_WORDED の 8 件である。"
+    ]
+  }
+}

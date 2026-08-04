@@ -7,13 +7,16 @@ namespace {
 
 /// 許可された遷移表。ここに無い組み合わせはすべて違反。
 bool transition_allowed(SlotState from, SlotState to) noexcept {
+  if (to == SlotState::Error && from != SlotState::Empty) return true;
   switch (from) {
-    case SlotState::Free:      return to == SlotState::Filling;
-    case SlotState::Filling:   return to == SlotState::Ready;
+    case SlotState::Empty:     return to == SlotState::Preparing;
+    case SlotState::Preparing: return to == SlotState::Ready;
     case SlotState::Ready:     return to == SlotState::Copying;
     case SlotState::Copying:   return to == SlotState::Resident;
-    case SlotState::Resident:  return to == SlotState::Consuming;
-    case SlotState::Consuming: return to == SlotState::Free;
+    case SlotState::Resident:  return to == SlotState::InUse;
+    case SlotState::InUse:     return to == SlotState::Retired;
+    case SlotState::Retired:   return to == SlotState::Empty;
+    case SlotState::Error:     return to == SlotState::Empty;
   }
   return false;
 }
@@ -22,12 +25,14 @@ bool transition_allowed(SlotState from, SlotState to) noexcept {
 
 std::string_view to_string(SlotState s) noexcept {
   switch (s) {
-    case SlotState::Free:      return "FREE";
-    case SlotState::Filling:   return "FILLING";
+    case SlotState::Empty:     return "EMPTY";
+    case SlotState::Preparing: return "PREPARING";
     case SlotState::Ready:     return "READY";
     case SlotState::Copying:   return "COPYING";
     case SlotState::Resident:  return "RESIDENT";
-    case SlotState::Consuming: return "CONSUMING";
+    case SlotState::InUse:     return "IN_USE";
+    case SlotState::Retired:   return "RETIRED";
+    case SlotState::Error:     return "ERROR";
   }
   return "?";
 }
@@ -42,7 +47,7 @@ RingBuffer::RingBuffer(std::size_t depth, Bytes slot_capacity)
   for (std::size_t i = 0; i < depth; ++i) {
     slots_[i].slot_id = i;
     slots_[i].generation = 1;  // 0 は「無効」を表すため使わない
-    slots_[i].state = SlotState::Free;
+    slots_[i].state = SlotState::Empty;
     buffers_[i].assign(static_cast<std::size_t>(slot_capacity), 0);
     free_ids_.push_back(i);
   }
@@ -74,12 +79,12 @@ SlotRef RingBuffer::acquire_free() {
   free_ids_.pop_front();
 
   BufferSlot& s = slots_[id];
-  if (s.state != SlotState::Free) {
+  if (s.state != SlotState::Empty) {
     std::ostringstream os;
     os << "slot " << id << " was in free list but state is " << to_string(s.state);
     fail(ErrorKind::State, os.str());
   }
-  s.state = SlotState::Filling;
+  s.state = SlotState::Preparing;
 
   ++stats_.acquisitions;
   if (stats_.acquisitions > slots_.size()) ++stats_.wrap_arounds;
@@ -103,7 +108,7 @@ void RingBuffer::transition(const SlotRef& ref, SlotState from, SlotState to) {
   }
 
   s.state = to;
-  if (to == SlotState::Free) {
+  if (to == SlotState::Empty) {
     // 世代を進めることで、解放後の古いハンドルを検出できるようにする。
     ++s.generation;
     s.released_at_s = s.compute_end_s;
@@ -131,7 +136,7 @@ void RingBuffer::cancel_all() {
   free_ids_.clear();
   for (BufferSlot& s : slots_) {
     ++s.generation;  // 既存ハンドルを一括無効化
-    s.state = SlotState::Free;
+    s.state = SlotState::Empty;
     s.chunk_id = 0;
     s.payload_bytes = 0;
     s.checksum = 0;
@@ -141,7 +146,7 @@ void RingBuffer::cancel_all() {
 }
 
 std::vector<std::size_t> RingBuffer::state_histogram() const {
-  std::vector<std::size_t> h(6, 0);
+  std::vector<std::size_t> h(8, 0);
   for (const BufferSlot& s : slots_) {
     h[static_cast<std::size_t>(s.state)] += 1;
   }
