@@ -1,19 +1,21 @@
-ALSR PoC — ライセンス未確定
+MIT License
 
-本リポジトリのライセンスは 2026-08-02 時点で未確定である。
-設計書 §20「未確定事項」に準じ、ここで勝手に確定させない。
+Copyright (c) 2026 Yoshiki Matsunaga (NEXSPACE)
 
-確定するまでの暫定的な扱い:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    Copyright (c) 2026 ALSR PoC authors.
-    All rights reserved.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-ライセンスを確定したら、本ファイルを選択したライセンス全文へ置き換え、
-docs/DECISIONS.md へ決定記録（ID / 日付 / 選択肢 / 決定 / 根拠）を追加すること。
-
-注意:
-- third_party/ 以下に取得される依存物（Catch2 等）は、それぞれ本来の
-  ライセンス（Catch2 は Boost Software License 1.0）に従う。本ファイルの
-  対象外である。
-- 検証対象のモデル重み（Gemma 4 等）は本リポジトリに含めない。モデルの
-  ライセンスは配布元の条件に従う。
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

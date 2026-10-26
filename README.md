@@ -237,4 +237,7 @@ ALSR-PoC/
 
 ## ライセンス
 
-未確定。`LICENSE` を参照。確定したら `docs/DECISIONS.md` へ決定記録を追加すること。
+MIT License。`LICENSE` を参照（決定記録: `docs/DECISIONS.md` DR-0012）。
+
+- `third_party/` 以下に取得される依存物（Catch2 等）は、それぞれ本来のライセンス（Catch2 は Boost Software License 1.0）に従う。
+- 検証対象のモデル重み（Gemma 4 等）は本リポジトリに含めない。モデルのライセンスは配布元の条件に従う。
