@@ -1,4 +1,4 @@
-// alsr-inspect — GGUF 解析と実行順序マニフェスト生成 (FR-01 / FR-02)。
+// alsr-inspect — GGUF 解析と診断用heuristic manifest生成。
 //
 // モデルファイルは読み取り専用でしか触らない (NFR-03)。
 #include <chrono>
@@ -44,6 +44,8 @@ void usage() {
   --quiet               標準出力のサマリーを抑制する
 
 注意:
+  このmanifestの順序はtensor名からの推定であり、Real Executorの実graph順ではない。
+  M1以降の正本にはalsr-real-manifestを使うこと。
   --vram-gb は VRAM 総容量ではなく『重みに割ける VRAM』である。
   KV キャッシュ・アクティベーション・CUDA コンテキストは呼び出し側で引くこと。
 )";
@@ -142,7 +144,7 @@ int main(int argc, char** argv) {
                   << " : " << is.detail << "\n";
       }
 
-      std::cout << "\n=== 実行順序マニフェスト ===\n";
+      std::cout << "\n=== 診断用heuristic manifest（実graph順ではない） ===\n";
       std::cout << "  block count    : " << manifest.block_count << "\n";
       std::cout << "  entries        : " << manifest.entries.size() << "\n";
       std::cout << "  unknown        : " << manifest.unknown_count << "\n";

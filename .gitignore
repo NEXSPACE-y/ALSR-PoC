@@ -22,6 +22,9 @@ _deps/
 results/*
 !results/.gitkeep
 
+# --- ローカル作業領域（upstream checkout・中間生成物） ---
+work/
+
 # --- third_party の取得物 ---
 third_party/*
 !third_party/.gitkeep

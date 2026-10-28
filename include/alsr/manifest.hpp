@@ -1,4 +1,8 @@
-// ALSR PoC — 実行順序マニフェスト (FR-02)。
+// ALSR PoC — legacy heuristic tensor manifest。
+//
+// M1以降のReal Executorに対する実行順序の権威ではない。名前規則による
+// role/order仮説を診断用に残す。実Runtime順序の正本は
+// real_graph_manifest.hpp の alsr.real-graph-manifest.v1 とする。
 //
 //   - テンソルを論理レイヤーへ関連付ける
 //   - 実行順序、常駐候補を manifest へ記録する
@@ -69,7 +73,7 @@ struct ManifestEntry {
   TensorRole  role = TensorRole::Unknown;
   Subsystem   subsystem = Subsystem::Text;
   int         layer = -1;         ///< ブロック番号。非ブロックは -1
-  u64         exec_order = 0;     ///< 全体を通した実行順（0 始まり）
+  u64         exec_order = 0;     ///< 名前規則から推定した診断順（実graph順ではない）
   Bytes       bytes = 0;
   u32         type_id = 0;
 
@@ -104,7 +108,7 @@ struct Manifest {
   std::string model_sha256;   ///< 空なら未計算
   int         block_count = 0;
 
-  std::vector<ManifestEntry> entries;  ///< exec_order 昇順
+  std::vector<ManifestEntry> entries;  ///< heuristic exec_order 昇順
   std::vector<ExecStage>     stages;
 
   std::size_t unknown_count = 0;
@@ -140,7 +144,8 @@ struct Manifest {
   }
 };
 
-/// GGUF から実行順序マニフェストを構築する。
+/// GGUF名から診断用heuristic manifestを構築する。
+/// Real Executorの実行順序へ使用してはならない。
 /// `resident_threshold_bytes` 未満のテンソルを常駐候補とみなす。
 [[nodiscard]] Manifest build_manifest(const GgufFile& f,
                                       Bytes resident_threshold_bytes = 1 * MiB);

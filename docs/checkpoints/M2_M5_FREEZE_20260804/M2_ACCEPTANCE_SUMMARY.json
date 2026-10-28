@@ -1,0 +1,109 @@
+{
+  "schema": "alsr.m2.real-supply-acceptance-summary.v1",
+  "mission": "ALSR-M2-M5-REAL-SUPPLY-REPAIR-01",
+  "gate": "M2",
+  "verdict": "GREEN",
+  "verified_at": "2026-08-04T10:00:24+09:00",
+  "verifier_result": "M2_ACCEPTANCE_VERIFIED: GREEN (derived: 5/5 exact, explicit Model Store -> finite Ring -> Backend, fallback 0)",
+  "verdict_authority": "scripts/verify_m2_acceptance.py must derive the verdict from hashed raw evidence",
+  "acceptance_contract": {
+    "model": "Gemma 4 12B",
+    "new_tokens_per_run": 128,
+    "required_runs": 5,
+    "maximum_seconds_per_run": 1800,
+    "output_requirement": "exact generated token IDs and UTF-8 text versus M0 baseline",
+    "required_supply_path": "Model Store -> Preparation -> Ready Queue -> finite Ring -> Backend -> Executor",
+    "runtime_source_fallback_required": 0
+  },
+  "identity": {
+    "model_sha256": "1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606",
+    "runtime_tag": "b10091",
+    "runtime_commit": "b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45",
+    "runtime_patch_sha256": "33f7bf1348c755e4a59c54d17d43ff963726e54fa26bf5212278d874542682e7",
+    "executor_binary_sha256": "50cda0a2412f5065bb9b4eede525e1c6bd8ef4b44a87d5682c6eec9f1ed3e771",
+    "capture_graph_trace_sha256": "2168aa94351524e35130e23ec660bffacf95e5950996e7e8ea8af5c7eab5d626",
+    "accepted_graph_trace_sha256": "bbced15b03a76fbbfa29593d2c18dc61156bb22de514176223d18e0955b89c27",
+    "manifest_sha256": "871a5592265fae4512ba10d3ae809acdc8c8f476deb7f971e497c1764ad9354a",
+    "manifest_structure_sha256": "14e1c39b2f305b66d6711386c5e4e6c91337410fca0b074be6203ed9f1426511",
+    "baseline_sha256": "adece11b00bcf77f809fdefad53412d39b70f2b4bdea30461b9a73acfea90fd7"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "accepted": true,
+      "generated_tokens": 128,
+      "seconds": 324.54476325,
+      "peak_rss_bytes": 4255825920,
+      "model_store_bytes_read": 942791483392,
+      "prepared_ranges": 86912,
+      "runtime_source_fallback_count": 0
+    },
+    {
+      "run": 2,
+      "accepted": true,
+      "generated_tokens": 128,
+      "seconds": 307.391956291,
+      "peak_rss_bytes": 4441735168,
+      "model_store_bytes_read": 942791483392,
+      "prepared_ranges": 86912,
+      "runtime_source_fallback_count": 0
+    },
+    {
+      "run": 3,
+      "accepted": true,
+      "generated_tokens": 128,
+      "seconds": 318.033776125,
+      "peak_rss_bytes": 5097439232,
+      "model_store_bytes_read": 942791483392,
+      "prepared_ranges": 86912,
+      "runtime_source_fallback_count": 0
+    },
+    {
+      "run": 4,
+      "accepted": true,
+      "generated_tokens": 128,
+      "seconds": 332.273807709,
+      "peak_rss_bytes": 4895244288,
+      "model_store_bytes_read": 942791483392,
+      "prepared_ranges": 86912,
+      "runtime_source_fallback_count": 0
+    },
+    {
+      "run": 5,
+      "accepted": true,
+      "generated_tokens": 128,
+      "seconds": 339.958850458,
+      "peak_rss_bytes": 4260069376,
+      "model_store_bytes_read": 942791483392,
+      "prepared_ranges": 86912,
+      "runtime_source_fallback_count": 0
+    }
+  ],
+  "aggregate": {
+    "accepted_run_count": 5,
+    "seconds_min": 307.391956291,
+    "seconds_median": 324.54476325,
+    "seconds_max": 339.958850458,
+    "seconds_sum": 1622.203153833,
+    "peak_rss_bytes_min": 4255825920,
+    "peak_rss_bytes_max": 5097439232,
+    "model_store_bytes_read_total": 4713957416960,
+    "prepared_ranges_total": 434560,
+    "ring_transitions_total": 3041920,
+    "prefetch_hits_total": 165169,
+    "consumer_waits_total": 269391,
+    "consumer_wait_seconds_total": 1275.696740085998,
+    "swap_operations_total": 0,
+    "ring_illegal_transition_attempts_total": 0,
+    "runtime_source_fallback_count_total": 0
+  },
+  "scope_boundary": {
+    "proved": "Gemma 4 12B fixed-path real inference on M5 with explicit prepared range supply through a finite two-slot Ring",
+    "not_proved": [
+      "Gemma 4 31B or any model exceeding the 16 GiB memory constraint",
+      "adaptive scheduling benefit",
+      "performance advantage over mmap or Ollama",
+      "CUDA, PCIe, or RTX operation"
+    ]
+  }
+}

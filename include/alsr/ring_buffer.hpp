@@ -1,7 +1,8 @@
 // ALSR PoC — Queue / Ring Buffer (FR-05)。
 //
 // 要件:
-//   - FREE → FILLING → READY → COPYING → RESIDENT → CONSUMING → FREE の
+//   - EMPTY → PREPARING → READY → COPYING → RESIDENT → IN_USE →
+//     RETIRED → EMPTY の
 //     状態遷移を持つ
 //   - 単一所有権または世代番号により ABA 問題を防ぐ
 //   - producer が consumer を上書きしない
@@ -25,12 +26,14 @@
 namespace alsr {
 
 enum class SlotState {
-  Free = 0,
-  Filling,
+  Empty = 0,
+  Preparing,
   Ready,
   Copying,
   Resident,
-  Consuming,
+  InUse,
+  Retired,
+  Error,
 };
 
 std::string_view to_string(SlotState s) noexcept;
@@ -48,7 +51,7 @@ struct SlotRef {
 struct BufferSlot {
   std::size_t slot_id = 0;
   u64         generation = 0;
-  SlotState   state = SlotState::Free;
+  SlotState   state = SlotState::Empty;
 
   // ペイロード
   u64   chunk_id = 0;
@@ -94,11 +97,11 @@ public:
   }
   [[nodiscard]] const RingBufferStats& stats() const noexcept { return stats_; }
 
-  /// FREE のスロットを 1 つ確保し FILLING にする。無ければ std::nullopt 相当で
+  /// EMPTY のスロットを 1 つ確保し PREPARING にする。無ければ std::nullopt 相当で
   /// generation==0 かつ slot_id==npos の SlotRef を返さず、has_free() で事前確認すること。
   [[nodiscard]] bool has_free() const noexcept { return !free_ids_.empty(); }
 
-  /// FREE → FILLING。FREE が無ければ Error(State)。
+  /// EMPTY → PREPARING。EMPTY が無ければ Error(State)。
   SlotRef acquire_free();
 
   /// 状態遷移。from が現在状態と違う、または遷移表に無ければ Error(State)。
@@ -111,7 +114,7 @@ public:
   /// ホスト側バッファ（実データ）。capacity バイト。
   u8* host_buffer(const SlotRef& ref);
 
-  /// 全スロットを FREE へ戻し、世代を進める。既存 SlotRef はすべて無効になる。
+  /// 全スロットを EMPTY へ戻し、世代を進める。既存 SlotRef はすべて無効になる。
   void cancel_all();
 
   /// 状態別のスロット数（テスト・診断用）。

@@ -1,19 +1,26 @@
 # 既知の制約と、まだ言えないこと
 
-Phase 0-2 完了時点（2026-08-02）。
-「何を測ったか」と同じ重みで「何を測っていないか」を書く。
+更新: 2026-08-04 JST
+状態: `M2_GREEN / M5_FROZEN / WINDOWS_RTX_NEXT`
+
+本書はPhase 0-2時点の旧記録から始まったが、A0監査とM2再実装により主張可能範囲が
+変更された。§3以降の旧測定値・simulation値は設計履歴として残すが、現行の性能証拠や
+RTX予測として引用してはならない。Provenanceの正本は`docs/recovery/`、現在の実装証拠は
+`docs/checkpoints/M2_M5_FREEZE_20260804/`、次作業は`docs/WINDOWS_RTX_HANDOFF.md`に従う。
 
 ---
 
 ## 1. この実装が主張してよいこと
 
-- GGUF v3 の構造解析と、テンソル被覆の完全性（重複 0 / 欠落 0 / 全バイト説明可能）
-- Chunk 計画の決定論性と、量子ブロック・alignment 境界の遵守
-- リングバッファ状態機械の正しさ（不正遷移拒否、ABA 検出、cancel 時の安全解放）
-- 帯域・レイテンシ・jitter・一時停止を与えたときのスケジューラの挙動
-- 平均供給帯域が平均消費帯域を下回る場合、**有限深度のバッファでは必ず枯渇する**
-  こと（深度 2〜16 で実測、設計書 §2.2）
-- S_stream と実測帯域から導かれる T_max の上限（転送のみ）
+- Gemma 4 12Bを使ったM2正式Packで、128 token × 5 Runの実推論が完了した。
+- Model Storeの明示range readからPreparation、Queue、固定Scheduler、有限Ring、Backend、
+  llama.cpp Executorまで、設計した供給経路を通過した。
+- 正式5 Runではprepared-range欠落時のfallbackが0件だった。
+- M2 verifierが正式Packを受理し、撤回済み旧Packを拒否する。
+- GGUF解析、Chunk計画、Ring状態機械、供給経路に対応するsourceと軽量testが存在する。
+
+ここでの「M2 GREEN」は構造成立の判定であり、速度優位、VRAM超過、CUDA移植、
+scale成立の判定ではない。
 
 ## 2. この実装が主張してはいけないこと
 
@@ -21,14 +28,21 @@ Phase 0-2 完了時点（2026-08-02）。
   simulator backend の `measured_on_real_hardware` は常に `false` を返す。
 - **Pinned Memory の効果**。M5 では該当経路が存在しない。
 - **ALSR が既存方式より速いこと**。設計書 §10 の比較対象 B0〜B5 のうち、
-  Phase 0-2 で埋まったものは 1 つも無い。B3〜B5 は RTX 機（Phase 3）、
-  B0〜B2 は llama.cpp 経路（Phase 5）が要る。
-- **出力品質**。実 LLM 経路に接続していないので、正確性ゲート（NFR-01 の
-  logit 差 / perplexity 差）は 1 度も評価していない。
+  公平なRTX比較はまだ1つも完了していない。
+- **VRAM超過modelが動くこと**。M2の12BはM5構造確認用であり、31B、70B、120B、
+  405B級は未検証。
+- **CUDA版が機能すること**。Windows I/O、pinned host memory、device Ring、copy／compute
+  stream、CUDA event lifetimeは未実装または未検証。
+- **出力品質の一般保証**。M2でtoken生成は確認したが、direct baselineとのlogit差、
+  perplexity差、長文品質は未認定。
+- **M5で追加の高負荷検証を行ってよいこと**。M5は明示的に凍結済みである。
 
 ---
 
-## 3. Phase 0 の実測で見つかった、設計に効く制約
+## 3. 旧Phase 0記録（現行性能証拠として引用禁止）
+
+以下は当時の記録を追跡可能にするため残す。数値のProvenance、Claim判定、Evidenceの
+有無はA0監査成果物で確認し、`MEASURED`、`DERIVED`、`ASSUMED`、`EMULATED`を混同しない。
 
 ### 3.1 単一コアの CRC32C が PCIe 4.0 より遅い
 

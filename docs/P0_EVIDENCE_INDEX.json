@@ -1,0 +1,360 @@
+{
+  "schema": "alsr.p0.evidence-index.v1",
+  "mission": "ALSR-P0-RUNTIME-INTEGRATION-AUDIT-01",
+  "generated_at": "2026-08-03T16:50:42+09:00",
+  "method": "READ_ONLY_SOURCE_AUDIT",
+  "amendments": [
+    {
+      "recorded_at": "2026-08-03T17:05:19+09:00",
+      "type": "POST_AUDIT_USER_DECISION",
+      "statement": "User approved O-01 through O-04 on the explicit premise that ALSR must change real inference from false to true.",
+      "effects": [
+        "P0 final closure changed from HOLD to GREEN.",
+        "Approved decisions recorded in ALSR_REQ_DESIGN.md Rev.3.1.",
+        "Next authorized Mission changed to ALSR-M0-M5-BASELINE-01."
+      ]
+    },
+    {
+      "recorded_at": "2026-08-03T17:52:24+09:00",
+      "type": "CANONICAL_DOCUMENT_ADVANCE",
+      "statement": "The canonical requirements document advanced through M0 and M1 closure. P0-E001 now resolves to the byte-identical archived Rev.3.1 snapshot that was authoritative when P0 closed.",
+      "effects": [
+        "P0-E001 path changed from the mutable canonical path to docs/archive/ALSR_REQ_DESIGN_REV3_1.md.",
+        "The recorded P0-E001 SHA-256 is unchanged.",
+        "P0 source-item hashes remain point-in-time observations at repository HEAD 0ce74bda24843ead02ec2ee992febd65ab8882ae; later M1 edits do not retroactively change them."
+      ]
+    }
+  ],
+  "execution_scope": {
+    "code_changed": false,
+    "build_run": false,
+    "tests_run": false,
+    "benchmarks_run": false,
+    "models_loaded_downloaded_deleted_or_converted": false,
+    "existing_results_changed": false
+  },
+  "artifacts": [
+    {
+      "path": "docs/PRIOR_ART.md",
+      "sha256": "f818ffe76fe9dd46f2e847e67911fdfe83f8157901484a19458c970f507d4a9d"
+    },
+    {
+      "path": "docs/BASELINE_ARCHITECTURE.md",
+      "sha256": "7847df79e960695d7e49d29116be9518ca88ea8992dfc367cf5980ff64964d29"
+    },
+    {
+      "path": "docs/DELTA_HYPOTHESIS.md",
+      "sha256": "360b75cbe0b31043de1cdbf9e2f8ef275cb7fc8050ed88c5de36f4ef1c3b0e14"
+    },
+    {
+      "path": "docs/M5_EXECUTOR_INTEGRATION_FEASIBILITY.md",
+      "sha256": "19aed652b147f327eac65b06995a44668d467bea3f72c7416abd7464fe830ea9"
+    }
+  ],
+  "repository": {
+    "path": "/Users/yoshiki/Desktop/ALSR-PoC",
+    "head": "0ce74bda24843ead02ec2ee992febd65ab8882ae",
+    "status_at_p0_start": [
+      " M docs/ALSR_REQ_DESIGN.md",
+      "?? docs/archive/",
+      "?? docs/recovery/"
+    ],
+    "note": "The requirements rebaseline and recovery artifacts predate P0. P0 created the five named documentation artifacts. After source-audit completion, the user's O-01 through O-04 approval was recorded as the Rev.3.1 requirements amendment while byte-identical Rev.3.0 was archived."
+  },
+  "source_pins": {
+    "ollama": {
+      "tag": "v0.32.5",
+      "commit": "eec8e0b9458b8a01be0c216a9cc53eefde24ef50",
+      "repository": "https://github.com/ollama/ollama"
+    },
+    "llama_cpp": {
+      "tag": "b10091",
+      "commit": "b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45",
+      "repository": "https://github.com/ggml-org/llama.cpp"
+    }
+  },
+  "provenance_classes": {
+    "APPROVED_REQUIREMENTS": "User-approved canonical requirement source.",
+    "LOCAL_SOURCE": "Source file in the target repository, read only.",
+    "UPSTREAM_SOURCE": "Commit-pinned primary source from the upstream repository.",
+    "ENVIRONMENT_OBSERVATION": "Read-only host/tool version observation; not a benchmark.",
+    "UNVERIFIED_LOCAL_ARTIFACT": "Pre-existing output used only as a planning clue, not reproduced by P0."
+  },
+  "items": [
+    {
+      "id": "P0-E001",
+      "provenance": "APPROVED_REQUIREMENTS",
+      "path": "docs/archive/ALSR_REQ_DESIGN_REV3_1.md",
+      "sha256": "4bcc92258b76fbcdf930e1b99944f9852ff33c276f0a71030b31fe845ef9fc08",
+      "locations": ["§6", "FR-01 through FR-11", "Gate P0 through M4", "§15", "§15.1", "§16"],
+      "supports": ["P0 scope", "M5-first sequence", "real Executor requirement", "OPEN decision ownership"]
+    },
+    {
+      "id": "P0-E002",
+      "provenance": "LOCAL_SOURCE",
+      "path": "CMakeLists.txt",
+      "sha256": "dbeb02a7015edde31795a8a4d71b79b1a978e94976a7023bfefa36d39b1cfb72",
+      "locations": ["31-45", "74-92"],
+      "supports": ["compiled modules", "simulator-only backend", "four CLI tools", "no llama.cpp/Metal/CUDA Executor linkage"]
+    },
+    {
+      "id": "P0-E003",
+      "provenance": "LOCAL_SOURCE",
+      "path": "include/alsr/transfer_backend.hpp",
+      "sha256": "166c13cacf64e0ade2fd81ca2250cc89ba69f22a53c06c2eedfb478037213ff8",
+      "locations": ["31-48"],
+      "supports": ["current TransferBackend contract", "virtual timing and pointer/byte consume boundary"]
+    },
+    {
+      "id": "P0-E004",
+      "provenance": "LOCAL_SOURCE",
+      "path": "backends/simulator/sim_transfer_backend.cpp",
+      "sha256": "0944f67e8f351f7826240ec5e463f4b2b8fd1c38a944da350c3c4d283514b089",
+      "locations": ["41-63"],
+      "supports": ["virtual transfer/compute duration", "CRC32C consume", "not real hardware"]
+    },
+    {
+      "id": "P0-E005",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/sim/sim.cpp",
+      "sha256": "0185fbd8930f76d0b84a295123806ea5696e291193dd862dec83f05224661e68",
+      "locations": ["491-509"],
+      "supports": ["simulator retirement path", "no real token/logit compute"]
+    },
+    {
+      "id": "P0-E006",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/cli/cli_common.hpp",
+      "sha256": "364fa3f98ef7e766cea85935734ec7896388b4a5cd146a71bc0bafcc1db7efca",
+      "locations": ["107-168"],
+      "supports": ["Ollama integration resolves local model blob only"]
+    },
+    {
+      "id": "P0-E007",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/inspector/manifest.cpp",
+      "sha256": "cdb7eb269ffc102c1e87fdae218f4eabff8929965f6ec10949b778215e67041e",
+      "locations": ["156-205", "320-410"],
+      "supports": ["static name-ranked execution order", "static dependency map", "manifest authority gap"]
+    },
+    {
+      "id": "P0-E008",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/planner/planner.cpp",
+      "sha256": "9e25ce91849078830b7cd1e7122bf77d9e4f3ad82e83c269bb439867eed4424b",
+      "locations": ["217-310"],
+      "supports": ["file-offset chunk construction", "heuristic exec-order sorting"]
+    },
+    {
+      "id": "P0-E009",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/buffer/host_store.cpp",
+      "sha256": "7169035357308c77728507702338dbfd7168d26ad6ad4da148a4b51f5a28138d",
+      "locations": ["18-30", "45-166"],
+      "supports": ["mmap/pread/synthetic HostStore modes", "candidate reuse"]
+    },
+    {
+      "id": "P0-E010",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/buffer/ring_buffer.cpp",
+      "sha256": "a06de4f9163e49fcef76f74c47113393480ba720582c964682a2d761861f3d4a",
+      "locations": ["9-16", "77-109"],
+      "supports": ["finite Ring transitions", "illegal-transition detection", "candidate reuse"]
+    },
+    {
+      "id": "P0-E011",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/scheduler/scheduler.cpp",
+      "sha256": "d58db012997e4033652d7e401bdc8ccb106bd55459e0e6cb052cad0c68dd29ea",
+      "locations": ["1-40", "42-201"],
+      "supports": ["fixed/adaptive scheduler logic", "real-demand adaptation required"]
+    },
+    {
+      "id": "P0-E012",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/telemetry/telemetry.cpp",
+      "sha256": "da455fc6e5285e916362d18752c9f2760a88abd70b413365d495b1238eb38840",
+      "locations": ["45-70", "259-388"],
+      "supports": ["metrics writer", "EvidencePack primitives", "real-inference schema extension required"]
+    },
+    {
+      "id": "P0-E013",
+      "provenance": "UNVERIFIED_LOCAL_ARTIFACT",
+      "path": "results/manifest_gemma4_31b.json",
+      "sha256": "7fdaf8834243570ef9d15e6a2212118e79b1e829052dd3669026e67dc9fec91f",
+      "limitations": ["not regenerated in P0", "model_sha256 is empty", "not proof of runtime load or inference"],
+      "supports": ["planning clue: 60-block dense tensor naming", "planning clue: pre-existing reported tensor bytes"]
+    },
+    {
+      "id": "P0-E014",
+      "provenance": "ENVIRONMENT_OBSERVATION",
+      "observed_at": "2026-08-03T16:50:42+09:00",
+      "values": {
+        "os": "macOS 26.5.2 build 25F84",
+        "architecture": "arm64",
+        "physical_memory_bytes": 17179869184,
+        "ollama_path": "/opt/homebrew/bin/ollama",
+        "ollama_client_version": "0.32.4",
+        "ollama_server_version": "0.32.5"
+      },
+      "supports": ["M5 environment identity", "client/server version mismatch"]
+    },
+    {
+      "id": "P0-E015",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/releases/tag/v0.32.5",
+      "commit": "eec8e0b9458b8a01be0c216a9cc53eefde24ef50",
+      "supports": ["installed server source tag selection"]
+    },
+    {
+      "id": "P0-E016",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/LLAMA_CPP_VERSION",
+      "sha256": "f11bbbaa5377a329e80eaf7075a241ba051df9cf94489f56fb93f3362ef9ac4a",
+      "locations": ["1"],
+      "supports": ["llama.cpp tag b10091 pin"]
+    },
+    {
+      "id": "P0-E017",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llm/server.go",
+      "sha256": "1709459fc5b6a7c0cc598c3464ba9f6ca8a0b5bbde5bb85e750a9cfc0e797d1e",
+      "locations": ["106-119"],
+      "supports": ["all GGML models use llama-server subprocess"]
+    },
+    {
+      "id": "P0-E018",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llm/llama_server.go",
+      "sha256": "eb6b90eab5122a509a841b54c57fb08ce91a000591d6abd18bd51cda625db46e",
+      "locations": ["344-448", "1005-1012"],
+      "supports": ["llama-server process launch", "model load at process startup"]
+    },
+    {
+      "id": "P0-E019",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llama/server/CMakeLists.txt",
+      "sha256": "4b006c4b85fc0915600d804afdb7fe406b781583b1ec6d98e9a7b83132fdce23",
+      "locations": ["115-187", "189-215"],
+      "supports": ["llama.cpp pin and FetchContent", "compat patch application and source linkage"]
+    },
+    {
+      "id": "P0-E020",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llama/compat/README.md",
+      "sha256": "e058bbd944a56d15110c8296d60fc49b2d706e2f80e36e6b463c6b8db330de2b",
+      "locations": ["1-66", "73-105"],
+      "supports": ["in-memory Ollama GGUF compatibility purpose", "load-time hooks", "Gemma 4 handling"]
+    },
+    {
+      "id": "P0-E021",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llama/compat/001-llama-cpp-hooks.patch",
+      "sha256": "fd2528d78cf25a00171a904e6ae06ea5c86122f04584fa2fddb611ec56e64a4a",
+      "locations": ["1-56"],
+      "supports": ["metadata translation", "tensor skip and load-time transformation hooks", "no runtime supply hook"]
+    },
+    {
+      "id": "P0-E022",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ollama/ollama/blob/eec8e0b9458b8a01be0c216a9cc53eefde24ef50/llama/compat/llama-ollama-compat.cpp",
+      "sha256": "9c4e18e451c22ccf8b4d95ca2f8baaf8525ba3a06ae3223ea02a6b014f86e642",
+      "locations": ["1063-1115", "3239-3258"],
+      "supports": ["Gemma 4 tokenizer/tensor translation", "conditional mmap disable for transformed MoE"]
+    },
+    {
+      "id": "P0-E023",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/include/llama.h",
+      "sha256": "2331631b6a3567311abc0402c55aa9a867ee99759f2550bdfa261ec3693a21f6",
+      "locations": ["295-331", "474-493"],
+      "supports": ["model placement/load parameters", "load-time user tensor-data callback", "public in-process Executor API"]
+    },
+    {
+      "id": "P0-E024",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/src/llama-model.cpp",
+      "sha256": "c28abf9874c461613d5e6a4f53f6d6973b4e280ef36a8b7010014827c364aaaf",
+      "locations": ["1245-1331", "1520-1655"],
+      "supports": ["layer/backend placement", "mmap host-pointer buffers", "all-data load call"]
+    },
+    {
+      "id": "P0-E025",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/src/llama-model-loader.cpp",
+      "sha256": "c647b037af76291989082ad739d881a70a48ab2caf4cdc35bdc8e96223335cb5",
+      "locations": ["1342-1366", "1415-1644"],
+      "supports": ["mmap initialization", "tensor load loop", "four load-time staging buffers and async upload"]
+    },
+    {
+      "id": "P0-E026",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/src/models/gemma4.cpp",
+      "sha256": "64e195edca316acf902c9339c123db1bc820a6518eff825bf7886f136009b333",
+      "locations": ["3-132", "172-445"],
+      "supports": ["Gemma 4 actual tensors", "dense/MoE conditional graph", "real per-layer execution topology"]
+    },
+    {
+      "id": "P0-E027",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/ggml/include/ggml-backend.h",
+      "sha256": "a620e815b43a44cc72d5f216629a3a91980335b61bc37eb6b2d0813368c3704f",
+      "locations": ["260-352"],
+      "supports": ["backend scheduler responsibilities", "eval callback semantics", "public split/compute APIs"]
+    },
+    {
+      "id": "P0-E028",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/ggml/src/ggml-backend.cpp",
+      "sha256": "a96b54377e2b66732dcc5ed7ede82b6e0e873de53d515ac9fd6aa118b716bdd3",
+      "locations": ["908-928", "1245-1443", "1550-1721"],
+      "supports": ["dynamic op offload", "weight split and memory reuse", "copy/event lifetime", "eval callback synchronization"]
+    },
+    {
+      "id": "P0-E029",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/ggml/src/ggml-metal/ggml-metal.cpp",
+      "sha256": "938f9d9170a51bfbe11e6a4640981c6187acafd62c6b29380d4cf769cc84d054",
+      "locations": ["672-684", "712-762"],
+      "supports": ["Metal async/mapped/events capabilities", "supported buffer types", "operation offload threshold check"]
+    },
+    {
+      "id": "P0-E030",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/ggml/src/ggml-metal/ggml-metal-device.m",
+      "sha256": "e61c1139de3d7b4acea5908f075f6c4458d9d7ae0c62d52b13357e1175037f3b",
+      "locations": ["838-853"],
+      "supports": ["shared-buffer control", "default op_offload_min_batch_size 32", "environment override"]
+    },
+    {
+      "id": "P0-E031",
+      "provenance": "UPSTREAM_SOURCE",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b4d6c7d8ff69c2e05e4e8ee7e6e710a08abd7b45/ggml/src/ggml-metal/ggml-metal-context.m",
+      "sha256": "fb24c4f7a111371e77c820d29f7ea70844444d195032e8c1ad5c0a934ad2808c",
+      "locations": ["307-348", "438-466"],
+      "supports": ["asynchronous Metal tensor-set blit", "command-buffer lifetime", "asynchronous graph compute"]
+    },
+    {
+      "id": "P0-E032",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/inspector/gguf.cpp",
+      "sha256": "a203786d299ec1c84d4ddd3798649c6d425bb40347ae2e89f7c61ce3c2a2963d",
+      "supports": ["local GGUF parser candidate reuse"]
+    },
+    {
+      "id": "P0-E033",
+      "provenance": "LOCAL_SOURCE",
+      "path": "src/telemetry/checksum.cpp",
+      "sha256": "65657e19bcda72098bc0109a042d520a3a71fb6c07fbc978272362524b9625cf",
+      "supports": ["local CRC32C/SHA integrity candidate reuse"]
+    }
+  ],
+  "conclusion": {
+    "source_audit": "COMPLETE",
+    "technical_feasibility": "FEASIBLE_WITH_NARROW_PINNED_RUNTIME_EXTENSION",
+    "unmodified_ollama_http_integration": "NOT_FEASIBLE",
+    "current_local_real_executor": "NOT_IMPLEMENTED",
+    "real_inference_status": "NOT_EXECUTED",
+    "p0_final_closure": "GREEN_O-01_TO_O-04_USER_APPROVED"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "alsr.m2.real-supply-evidence-index.v1",
+  "mission": "ALSR-M2-M5-REAL-SUPPLY-REPAIR-01",
+  "verdict": "GREEN",
+  "root": "results/m2-gemma4-12b-real-supply-repair-20260804T002432Z",
+  "immutable_run_policy": "Each acceptance directory was created once and was not reused after completion.",
+  "source_artifacts": [
+    "preflight/M0_TOKEN_ID_BASELINE.json",
+    "identity_capture_1/GRAPH_TRACE.json",
+    "identity_capture_2/GRAPH_TRACE.json",
+    "manifest/M2_ACCEPTANCE_MANIFEST.json",
+    "manifest/M2_ACCEPTANCE_MANIFEST_REPEAT.json",
+    "IMPLEMENTATION_IDENTITY.json"
+  ],
+  "acceptance_runs": [
+    "acceptance_128_run_1",
+    "acceptance_128_run_2",
+    "acceptance_128_run_3",
+    "acceptance_128_run_4",
+    "acceptance_128_run_5"
+  ],
+  "required_per_run_artifacts": [
+    "RESULT.json",
+    "GRAPH_TRACE.json",
+    "supply_trace.jsonl"
+  ],
+  "verifier": "implementation/scripts/verify_m2_acceptance.py",
+  "excluded_evidence": [
+    {
+      "root": "results/m2-gemma4-12b-real-executor-20260803T090123Z",
+      "status": "WITHDRAWN",
+      "reason": "callback_requests_tensor_data was false; see M2_RETRACTION.json"
+    },
+    {
+      "root": "results/m2-gemma4-12b-real-supply-repair-20260803T235054Z",
+      "status": "DIAGNOSTIC_NOT_ACCEPTANCE",
+      "reason": "concurrent telemetry emission lacked an authoritative transition sequence"
+    }
+  ]
+}

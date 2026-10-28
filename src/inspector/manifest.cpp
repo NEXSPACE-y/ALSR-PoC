@@ -490,6 +490,9 @@ Manifest build_manifest(const GgufFile& f, Bytes resident_threshold_bytes) {
 
 json::Value to_json(const Manifest& m) {
   json::Value root = json::Value::make_object();
+  root.set("schema", "alsr.heuristic-tensor-manifest.v1");
+  root.set("order_provenance", "STATIC_TENSOR_NAME_HEURISTIC");
+  root.set("authoritative_for_real_executor", false);
   root.set("model_path", m.model_path);
   root.set("architecture", m.architecture);
   root.set("model_sha256", m.model_sha256);

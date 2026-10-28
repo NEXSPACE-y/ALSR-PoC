@@ -160,7 +160,7 @@ TEST_CASE("GGUF: alignment 非 2 冪は拒否する", "[unit][gguf]") {
   }
 }
 
-TEST_CASE("Manifest: 役割分類と実行順序", "[unit][manifest]") {
+TEST_CASE("Manifest: 役割分類と名前規則による診断順", "[unit][manifest]") {
   TempDir tmp("manifest");
   const std::string p = tmp.file("model.gguf");
   write_test_gguf(p, gemma_like_specs());
@@ -333,7 +333,7 @@ TEST_CASE("Manifest: 視覚エンコーダと投影器を分離し S_stream か�
   REQUIRE(noted);
 }
 
-TEST_CASE("Manifest: 依存関係が計算グラフを反映する", "[unit][manifest]") {
+TEST_CASE("Manifest: 手書き依存仮説を診断用に保持する", "[unit][manifest]") {
   TempDir tmp("manifest-deps");
   const std::string p = tmp.file("model.gguf");
   write_test_gguf(p, gemma_like_specs());
